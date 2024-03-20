@@ -25,12 +25,19 @@ def main(data_flag, output_root, num_epochs, gpu_ids, batch_size, download, mode
     gamma=0.1
     milestones = [0.5 * num_epochs, 0.75 * num_epochs]
 
-    info = INFO[data_flag]
+    info = INFO[data_flag] # info is a variable from medmnist package, dictionary
     task = info['task']
     n_channels = 3 if as_rgb else info['n_channels']
     n_classes = len(info['label'])
 
+    # DataSet class is already retrieved here
     DataClass = getattr(medmnist, info['python_class'])
+
+    # check available GPUs
+    print(f"GPU availability: {torch.cuda.is_available()}")
+    print(f"Currently selected device: {torch.cuda.current_device()}")
+    print(f"Total GPU count: {torch.cuda.device_count()}")
+    print(f"Device name: {torch.cuda.get_device_name()}")
 
     str_ids = gpu_ids.split(',')
     gpu_ids = []
@@ -59,9 +66,15 @@ def main(data_flag, output_root, num_epochs, gpu_ids, batch_size, download, mode
             [transforms.ToTensor(),
             transforms.Normalize(mean=[.5], std=[.5])])
      
-    train_dataset = DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb)
-    val_dataset = DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb)
-    test_dataset = DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb)
+    # train_dataset = DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb)
+    # val_dataset = DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb)
+    # test_dataset = DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb)
+    
+    # scratch disk as root
+    SCRATCH_ROOT = '/scratch/izar/ishii'
+    train_dataset = DataClass(split='train', root=SCRATCH_ROOT, transform=data_transform, download=download, as_rgb=as_rgb)
+    val_dataset = DataClass(split='val', root=SCRATCH_ROOT, transform=data_transform, download=download, as_rgb=as_rgb)
+    test_dataset = DataClass(split='test', root=SCRATCH_ROOT, transform=data_transform, download=download, as_rgb=as_rgb)
 
     
     train_loader = data.DataLoader(dataset=train_dataset,
@@ -282,7 +295,6 @@ if __name__ == '__main__':
                         default='model1',
                         help='to name a standard evaluation csv file, named as {flag}_{split}_[AUC]{auc:.3f}_[ACC]{acc:.3f}@{run}.csv',
                         type=str)
-
 
     args = parser.parse_args()
     data_flag = args.data_flag
