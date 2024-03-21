@@ -2,7 +2,7 @@ import torch, argparse
 import torch.nn as nn
 import torch.nn.functional as F
 
-from create_dataset import office_dataloader
+from create_dataset import office_dataloader, get_medmnist_dataloaders
 
 from LibMTL import Trainer
 from LibMTL.model import resnet18
@@ -39,8 +39,6 @@ def main(params):
     else:
         raise ValueError('No support dataset {}'.format(params.dataset))
     
-    # get info
-    
     # define tasks
     task_dict = {}
     for task in task_name:
@@ -54,10 +52,13 @@ def main(params):
                         ##########
                        'metrics_fn': MedMnistMetric(task_type),
                        'loss_fn': loss_fn,
-                       'weight': [1]}
+                       'weight': [1, 1] # 1 if the metric should be maximized, 0 if it should be minimized
+                       }
     
     # prepare dataloaders
-    data_loader, _ = office_dataloader(dataset=params.dataset, batchsize=params.bs, root_path=params.dataset_path)
+    #TODO: implement params.resize, params.download later
+    data_loader = get_medmnist_dataloaders(task_name=task_name, batch_size=params.bs, root_path=params.dataset_path,
+                                           resize=params.resize, download=params.download, as_rgb=True)
     train_dataloaders = {task: data_loader[task]['train'] for task in task_name}
     val_dataloaders = {task: data_loader[task]['val'] for task in task_name}
     test_dataloaders = {task: data_loader[task]['test'] for task in task_name}
@@ -66,26 +67,29 @@ def main(params):
     class Encoder(nn.Module):
         def __init__(self):
             super(Encoder, self).__init__()
-            hidden_dim = 512
-            self.resnet_network = resnet18(pretrained=True)
+            # hidden_dim = 512
+            self.resnet_network = resnet18(pretrained=False)
+            
+            # Use raw output from resnet18
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-            self.hidden_layer_list = [nn.Linear(512, hidden_dim),
-                                      nn.BatchNorm1d(hidden_dim), nn.ReLU(), nn.Dropout(0.5)]
-            self.hidden_layer = nn.Sequential(*self.hidden_layer_list)
+            # self.hidden_layer_list = [nn.Linear(512, hidden_dim),
+            #                           nn.BatchNorm1d(hidden_dim), nn.ReLU(), nn.Dropout(0.5)]
+            # self.hidden_layer = nn.Sequential(*self.hidden_layer_list)
 
             # initialization
-            self.hidden_layer[0].weight.data.normal_(0, 0.005)
-            self.hidden_layer[0].bias.data.fill_(0.1)
+            # self.hidden_layer[0].weight.data.normal_(0, 0.005)
+            # self.hidden_layer[0].bias.data.fill_(0.1)
             
         def forward(self, inputs):
-            out = self.resnet_network(inputs)
-            out = torch.flatten(self.avgpool(out), 1)
-            out = self.hidden_layer(out)
+            out = self.resnet_network(inputs) # out: 512 planes, 7x7?
+            out = torch.flatten(self.avgpool(out), 1) # get one value from each plane
+            # out = self.hidden_layer(out)
             return out
 
+    # TODO: implement nn.Linear for each task
     decoders = nn.ModuleDict({task: nn.Linear(512, class_num) for task in list(task_dict.keys())})
     
-    officeModel = Trainer(task_dict=task_dict, 
+    model = Trainer(task_dict=task_dict, 
                           weighting=params.weighting, 
                           architecture=params.arch, 
                           encoder_class=Encoder, 
@@ -98,12 +102,12 @@ def main(params):
                           load_path=params.load_path,
                           **kwargs)
     if params.mode == 'train':
-        officeModel.train(train_dataloaders=train_dataloaders, 
-                          val_dataloaders=val_dataloaders,
-                          test_dataloaders=test_dataloaders, 
-                          epochs=params.epochs)
+        model.train(train_dataloaders=train_dataloaders, 
+                        val_dataloaders=val_dataloaders,
+                        test_dataloaders=test_dataloaders, 
+                        epochs=params.epochs)
     elif params.mode == 'test':
-        officeModel.test(test_dataloaders)
+        model.test(test_dataloaders)
     else:
         raise ValueError
     

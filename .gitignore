@@ -1,6 +1,6 @@
 .DS_Store
 MedMNIST2D/output
-
+.code-workspace
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

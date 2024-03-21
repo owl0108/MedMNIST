@@ -1,11 +1,63 @@
 
 from torch.utils.data import DataLoader, Dataset
+from typing import List
 import os
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
 from LibMTL.utils import get_root_dir
+
+import medmnist
+from medmnist.info import INFO
+
+def medmnist_transform(resize=True):
+    """Resize images of size 28x28 to 224x224
+    Args:
+        resize (bool): Defaults to True.
+    Returns:
+        torchvision.transforms.Compose: A sequence of image transformations.
+    """
+    if resize:
+        data_transform = transforms.Compose(
+            [transforms.Resize((224, 224), interpolation=Image.NEAREST), 
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])])
+    else:
+        data_transform = transforms.Compose(
+            [transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])])
+    return data_transform
+    
+def get_medmnist_dataloaders(task_name: List[str], batch_size: int, root_path: str,
+                             resize: bool = True, download: bool = False, as_rgb: bool = True):
+    data_loader = {}
+    #iter_data_loader = {}
+    for i, task in enumerate(task_name):
+        data_loader[task] = {}
+        #iter_data_loader[task] = {}
+        info = INFO[task]
+        for mode in ['train', 'val', 'test']:
+            shuffle = True if mode == 'train' else False
+            drop_last = True if mode == 'train' else False # ignore the incomplete batch when training
+            DataClass = getattr(medmnist, info['python_class']) # get pre-defined dataset class
+
+            # construct a dataset
+            img_dataset = DataClass(split=mode, root=root_path,
+                                    transform=medmnist_transform(resize), download=download, as_rgb=as_rgb)
+            # dictionary
+            data_loader[task][mode] = DataLoader(img_dataset, 
+                                                    num_workers=2, 
+                                                    pin_memory=True, 
+                                                    batch_size=batch_size, 
+                                                    shuffle=shuffle,
+                                                    drop_last=drop_last)
+            
+            #TODO: delete the following line if not necessary                                  
+            #iter_data_loader[task][mode] = iter(data_loader[task][mode])
+    # return data_loader, iter_data_loader
+    return data_loader        
+
 
 class office_Dataset(Dataset):
     def __init__(self, dataset, root_path, task, mode):
