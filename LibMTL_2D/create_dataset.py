@@ -9,7 +9,7 @@ from PIL import Image
 from LibMTL.utils import get_root_dir
 
 import medmnist
-from medmnist.info import INFO
+from info import INFO
 
 def medmnist_transform(resize=True):
     """Resize images of size 28x28 to 224x224

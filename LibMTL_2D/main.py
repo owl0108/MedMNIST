@@ -1,6 +1,8 @@
 import torch, argparse
 import torch.nn as nn
 import torch.nn.functional as F
+import os
+import wandb
 
 from create_dataset import office_dataloader, get_medmnist_dataloaders
 
@@ -14,6 +16,7 @@ from medmnist import INFO
 
 from loss import CELoss, BCELoss
 from metric import MedMnistMetric
+from trainer import Trainer
 
 def _parse_args(parser):
     parser.add_argument('--dataset', default='office-31', type=str, help='office-31, office-home')
@@ -28,6 +31,8 @@ def parse_args(parser):
     parser.add_argument('--bs', default=64, type=int, help='batch size')
     parser.add_argument('--epochs', default=100, type=int, help='training epochs')
     parser.add_argument('--dataset_path', default='/', type=str, help='dataset path')
+    parser.add_argument('--resize', default=True, type=bool, help='resize images to 224x224')
+    parser.add_argument('--download', default=False, type=bool, help='download dataset')
     return parser.parse_args()
 
 def main(params):
@@ -49,10 +54,10 @@ def main(params):
             loss_fn = CELoss()
         
         task_dict[task] = {'metrics': ['AUC', 'ACC'],
-                        ##########
                        'metrics_fn': MedMnistMetric(task_type),
                        'loss_fn': loss_fn,
-                       'weight': [1, 1] # 1 if the metric should be maximized, 0 if it should be minimized
+                       'weight': [1, 1], # 1 if the metric should be maximized, 0 if it should be minimized
+                       'class_num': len(MNIST_INFO[task]['label'])
                        }
     
     # prepare dataloaders
@@ -86,8 +91,8 @@ def main(params):
             # out = self.hidden_layer(out)
             return out
 
-    # TODO: implement nn.Linear for each task
-    decoders = nn.ModuleDict({task: nn.Linear(512, class_num) for task in list(task_dict.keys())})
+    # TODO: need to change in in_channels to 512 * block.expansion for resnet50>
+    decoders = nn.ModuleDict({task: nn.Linear(512, task_dict['class_num']) for task in list(task_dict.keys())})
     
     model = Trainer(task_dict=task_dict, 
                           weighting=params.weighting, 
