@@ -14,6 +14,7 @@ from LibMTL.metrics import AccMetric
 
 from medmnist import INFO
 
+from config import LibMTL_args, prepare_args
 from loss import CELoss, BCELoss
 from metric import MedMnistMetric
 from trainer import Trainer

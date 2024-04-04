@@ -105,6 +105,7 @@ class Trainer(Trainer):
                 else:
                     train_losses = torch.zeros(self.task_num).to(self.device)
                     for tn, task in enumerate(self.task_name):
+                        # logging
                         if batch_index == (len(train_batch)-1) // 4:
                             wandb.log({
                                 f'{task}_train_loss': train_losses[tn].item(),
@@ -120,6 +121,7 @@ class Trainer(Trainer):
                         train_pred = self.process_preds(train_pred, task)
                         # _compute_loss returns a loss for one batch (= a 1x1 Tensor)
                         train_losses[tn] = self._compute_loss(train_pred, train_gt, task)
+                        # logging
                         if batch_index == (len(train_batch)-1) // 4:
                             wandb.log({
                                 f'{task}_train_loss': train_losses[tn].item(),
