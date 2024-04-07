@@ -5,6 +5,7 @@ import os
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchvision.transforms import InterpolationMode
 from PIL import Image
 from LibMTL.utils import get_root_dir
 
@@ -20,7 +21,7 @@ def medmnist_transform(resize=True):
     """
     if resize:
         data_transform = transforms.Compose(
-            [transforms.Resize((224, 224), interpolation=Image.NEAREST), 
+            [transforms.Resize((224, 224), interpolation=InterpolationMode.NEAREST), 
             transforms.ToTensor(),
             transforms.Normalize(mean=[.5], std=[.5])])
     else:
@@ -39,15 +40,20 @@ def get_medmnist_dataloaders(task_name: List[str], batch_size: int, root_path: s
         info = INFO[task]
         for mode in ['train', 'val', 'test']:
             shuffle = True if mode == 'train' else False
-            drop_last = True if mode == 'train' else False # ignore the incomplete batch when training
+            #NOTE: drop_last is set to True to get ROC AUC score without error
+            # drop_last = True if mode == 'train' else False # ignore the incomplete batch when training
+            drop_last = True
             DataClass = getattr(medmnist, info['python_class']) # get pre-defined dataset class
 
+            # TODO: change split mode back after testing
             # construct a dataset
-            img_dataset = DataClass(split=mode, root=root_path,
+            img_dataset = DataClass(split='test', root=root_path,
                                     transform=medmnist_transform(resize), download=download, as_rgb=as_rgb)
+            
+
             # dictionary
             data_loader[task][mode] = DataLoader(img_dataset, 
-                                                    num_workers=2, 
+                                                    num_workers=1, 
                                                     pin_memory=True, 
                                                     batch_size=batch_size, 
                                                     shuffle=shuffle,

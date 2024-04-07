@@ -71,15 +71,30 @@ class MedMnistMetric(AbsMetric):
     r"""Implementation of AUC and Accuracy.
     """
     def __init__(self, task_type):
-        super().__init__(task_type)
+        super().__init__()
         self.task_type = task_type
+        self.batch_count = 0
         
     def update_fun(self, pred: Tensor, gt: Tensor):
+        '''Called at the end of every batch
+        '''
+        # detach and to cpu for getAUC & getACC
+        gt = gt.detach().cpu().numpy()
+        pred = pred.detach().cpu().numpy()
+        # batch-wise auc and acc
         auc = getAUC(gt, pred, self.task_type)
         acc = getACC(gt, pred, self.task_type)
         self.record.append([auc, acc])
-        self.bs.append(pred.size()[0])
+        # self.bs.append(pred.shape[0])
+        self.batch_count += 1
         
     def score_fun(self):
-        return [(sum(self.record)/sum(self.bs))]
+        '''Called at the end of epoch
+        '''
+        # modify here 
+        # divide by how many batches were there
+        auc_sum = sum([rec[0] for rec in self.record])
+        acc_sum = sum([rec[1] for rec in self.record])
+        
+        return [auc_sum/self.batch_count, acc_sum/self.batch_count]
 
