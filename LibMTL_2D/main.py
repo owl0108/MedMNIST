@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 import wandb
+from time import strftime
 
 from create_dataset import office_dataloader, get_medmnist_dataloaders
 
@@ -36,15 +37,16 @@ def parse_args(parser):
     parser.add_argument('--dataset_path', default=SCRATCH_PATH, type=str, help='dataset path')
     parser.add_argument('--resize', default=True, type=bool, help='resize images to 224x224')
     parser.add_argument('--download', default=False, type=bool, help='download dataset')
+    parser.add_argument('--run_name', default=strftime("%m-%d-%Y_%H:%M:%S"), type=str, help='run_name for wandb')
     return parser.parse_args()
 
 def main(params):
     kwargs, optim_param, scheduler_param = prepare_args(params)
     MNIST_INFO = INFO # dictionary from MedMNIST package containing various dataset-specific info
     if params.dataset == 'medmnist-2d':
-        # task_name = ['pathmnist', 'octmnist', 'pneumoniamnist', 'chestmnist', 'dermamnist', 'retinamnist',
-        #              'breastmnist', 'bloodmnist', 'organsmnist', 'tissuemnist', 'organamnist', 'organcmnist', 'organsmnist']
-        task_name = ['pathmnist']
+        task_name = ['pathmnist', 'octmnist', 'pneumoniamnist', 'chestmnist', 'dermamnist', 'retinamnist',
+                      'breastmnist', 'bloodmnist', 'organsmnist', 'tissuemnist', 'organamnist', 'organcmnist', 'organsmnist']
+        #task_name = ['retinamnist', 'octmnist']
     else:
         raise ValueError('No support dataset {}'.format(params.dataset))
     
@@ -109,6 +111,7 @@ def main(params):
                           scheduler_param=scheduler_param,
                           save_path=params.save_path,
                           load_path=params.load_path,
+                          wandb_name=params.run_name,
                           **kwargs)
     if params.mode == 'train':
         model.train(train_dataloaders=train_dataloaders, 

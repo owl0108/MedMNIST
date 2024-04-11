@@ -19,6 +19,6 @@ class BCELoss(AbsLoss):
         self.loss_fn = nn.BCEWithLogitsLoss()
     
     def compute_loss(self, pred, gt):
-        return self.compute_loss(pred, gt)
+        return self.loss_fn(pred, gt)
 
 

@@ -45,7 +45,7 @@ def get_medmnist_dataloaders(task_name: List[str], batch_size: int, root_path: s
             drop_last = True
             DataClass = getattr(medmnist, info['python_class']) # get pre-defined dataset class
 
-            # TODO: change split mode back after testing
+            #TODO: split=mode after debugging
             # construct a dataset
             img_dataset = DataClass(split='test', root=root_path,
                                     transform=medmnist_transform(resize), download=download, as_rgb=as_rgb)
@@ -53,7 +53,7 @@ def get_medmnist_dataloaders(task_name: List[str], batch_size: int, root_path: s
 
             # dictionary
             data_loader[task][mode] = DataLoader(img_dataset, 
-                                                    num_workers=1, 
+                                                    num_workers=0, 
                                                     pin_memory=True, 
                                                     batch_size=batch_size, 
                                                     shuffle=shuffle,
@@ -102,7 +102,8 @@ def office_dataloader(dataset, batchsize, root_path):
             txt_dataset = office_Dataset(dataset, root_path, d, mode)
 #             print(d, mode, len(txt_dataset))
             data_loader[d][mode] = DataLoader(txt_dataset, 
-                                              num_workers=2, 
+                                              num_workers=2,
+                                              persistent_workers=True,
                                               pin_memory=True, 
                                               batch_size=batchsize, 
                                               shuffle=shuffle,
