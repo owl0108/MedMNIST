@@ -47,11 +47,12 @@ def get_medmnist_dataloaders(task_name: List[str], batch_size: int, root_path: s
 
             #TODO: split=mode after debugging
             # construct a dataset
-            img_dataset = DataClass(split='test', root=root_path,
+            img_dataset = DataClass(split=mode, root=root_path,
                                     transform=medmnist_transform(resize), download=download, as_rgb=as_rgb)
             
 
             # dictionary
+            #NOTE: using num_workers>0 doesn't work with the cluster somehow ...
             data_loader[task][mode] = DataLoader(img_dataset, 
                                                     num_workers=0, 
                                                     pin_memory=True, 
@@ -103,7 +104,6 @@ def office_dataloader(dataset, batchsize, root_path):
 #             print(d, mode, len(txt_dataset))
             data_loader[d][mode] = DataLoader(txt_dataset, 
                                               num_workers=2,
-                                              persistent_workers=True,
                                               pin_memory=True, 
                                               batch_size=batchsize, 
                                               shuffle=shuffle,

@@ -106,7 +106,7 @@ class Trainer(Trainer):
                     # logging
                     if  mode == "train":
                         #print("val logging in progress ...")
-                        if batch_index % ((total_num_batches-1) // 4) == 0:
+                        if batch_index % 100 == 0:
                             wandb.log({
                                 f'{task}_train_loss': losses[tn].item(),
                                 'epoch': epoch,
@@ -138,7 +138,6 @@ class Trainer(Trainer):
         
         self.model.eval()
         self.meter.record_time('begin')
-        print("validation epoch starting")
         with torch.no_grad():
             epoch_preds, epoch_gts = self._run_single_epoch(epoch, val_batch, val_loader, mode='val')
         self.meter.record_time('end')

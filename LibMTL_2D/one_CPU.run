@@ -1,0 +1,14 @@
+#!/bin/bash -l
+
+# Run a job on 1 core + 1 GPU
+# login to deneb1 or deneb2 to submit
+
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=00:10:00
+#SBATCH -D=/home/ishii/MedMNIST/LibMTL_2D
+
+# run within LibMTL_2D directory
+conda activate libmtl
+bash hello.sh
