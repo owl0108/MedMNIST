@@ -9,9 +9,9 @@
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
-#SBATCH --mem 16G
+#SBATCH --time=5:00:00
+#SBATCH --mem 10G
 
 # run within LibMTL_2D directory
 conda activate libmtl
-bash train_model.sh
+bash train_2epochs.sh

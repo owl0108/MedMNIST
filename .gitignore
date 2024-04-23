@@ -1,6 +1,9 @@
 .DS_Store
-MedMNIST2D/output
-.code-workspace
+MedMNIST2D/output/
+LibMTL_2D/log/
+LibMTL_2D/wandb/
+*.code-workspace
+*.out
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

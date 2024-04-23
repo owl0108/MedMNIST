@@ -102,6 +102,7 @@ def main(data_flag, output_root, num_epochs, gpu_ids, batch_size, download, mode
 
     model = model.to(device)
 
+    # evaluator class calculates AUC and ACC
     train_evaluator = medmnist.Evaluator(data_flag, 'train')
     val_evaluator = medmnist.Evaluator(data_flag, 'val')
     test_evaluator = medmnist.Evaluator(data_flag, 'test')
@@ -245,7 +246,8 @@ def test(model, evaluator, data_loader, task, criterion, device, run, save_folde
 
             total_loss.append(loss.item())
             y_score = torch.cat((y_score, outputs), 0)
-
+        
+        # move to cpu, happens only at the end of epoch
         y_score = y_score.detach().cpu().numpy()
         auc, acc = evaluator.evaluate(y_score, save_folder, run)
         
