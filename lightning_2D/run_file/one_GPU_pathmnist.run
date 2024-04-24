@@ -14,4 +14,4 @@
 
 # run within LibMTL_2D directory
 conda activate medmnist_lightning
-bash script/train_on_gpu.sh
+bash script/train_pathmnist.sh
