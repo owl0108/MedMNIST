@@ -41,9 +41,9 @@ class GeneralistModel(L.LightningModule):
         else:
             raise NotImplementedError("Weighting strategy is not implemented")
         
-        self.training_step_outputs = {task:[] for task in tasks}
-        self.validation_step_outputs = {task:[] for task in tasks}
-        self.test_step_outputs = {task:[] for task in tasks}
+        self.training_step_outputs = {task: [] for task in tasks}
+        self.validation_step_outputs = {task: [] for task in tasks}
+        self.test_step_outputs = {task: [] for task in tasks}
         
 
     def forward(self, inputs, task):
@@ -57,6 +57,7 @@ class GeneralistModel(L.LightningModule):
         for (task, batch_for_a_single_task) in batch.items():
             #NOTE: what happens if none is detected
             if batch_for_a_single_task is None:
+                loss_dict.pop(f"{mode}_loss_"+task, None) # remove the key if it exists
                 continue
             else:
                 inputs, target = batch_for_a_single_task
@@ -65,6 +66,7 @@ class GeneralistModel(L.LightningModule):
                     self.training_step_outputs[task].append((output, target))
                 elif mode == 'val':
                     self.validation_step_outputs[task].append((output, target))
+                    mylist = self.validation_step_outputs['pathmnist']
                 elif mode == 'test':
                     self.test_step_outputs[task].append((output, target))
                 else:
@@ -111,6 +113,8 @@ class GeneralistModel(L.LightningModule):
         Args:
             mode (str): train, val, or test.
         """
+        accs = []
+        aucs = []
         if mode == 'train':
             step_outputs = self.training_step_outputs
         elif mode == 'val':
@@ -118,24 +122,34 @@ class GeneralistModel(L.LightningModule):
         elif mode == 'test':
             step_outputs = self.test_step_outputs
         for task in self.tasks:
-            preds, gts = zip(*step_outputs[task])
+            preds, gts = zip(*(step_outputs[task]))
             all_preds = torch.cat(preds)
             all_gts = torch.cat(gts)
             all_gts = all_gts.squeeze()
             task_type = INFO[task]['task']
             acc = getACC(all_preds, all_gts, task_type, self.device, threshold=0.5)
             auc = getAUC(all_preds, all_gts, task_type, self.device)
+            accs.append(acc)
+            aucs.append(auc)
             self.log_dict({f"{mode}_ACC_"+task: acc, f"{mode}_AUC_"+task: auc})
-        step_outputs.clear() # clear memory
+        
+        avg_acc = torch.stack(accs).mean()
+        avg_auc = torch.stack(aucs).mean()
+        self.log(f"{mode}_ACC", avg_acc)
+        self.log(f"{mode}_AUC", avg_auc)
+        step_outputs.clear() # clear the outputs
 
     def on_training_epoch_end(self):
         self._on_shared_epoch_end('train')
+        self.training_step_outputs = {task: [] for task in self.tasks}
 
     def on_validation_epoch_end(self):
         self._on_shared_epoch_end('val')
+        self.validation_step_outputs = {task: [] for task in self.tasks}
     
     def on_test_epoch_end(self):
         self._on_shared_epoch_end('test')
+        self.task_step_outputs = {task: [] for task in self.tasks}
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
