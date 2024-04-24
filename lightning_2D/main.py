@@ -45,8 +45,7 @@ def main(hparams):
                          num_sanity_val_steps=0,
                          log_every_n_steps=hparams.log_every_n_steps,
                          limit_train_batches=hparams.limit_train_batches,
-                         limit_val_batches=hparams.limit_val_batches,
-                         precision=hparams.precision
+                         limit_val_batches=hparams.limit_val_batches
                          )
     trainer.fit(model, data_module)
     trainer.test(model, data_module)
