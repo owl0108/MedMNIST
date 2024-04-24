@@ -46,7 +46,7 @@ def main(hparams):
                          log_every_n_steps=hparams.log_every_n_steps,
                          limit_train_batches=hparams.limit_train_batches,
                          limit_val_batches=hparams.limit_val_batches,
-                         precision=hparams.precision
+                         limit_test_batches=hparams.limit_test_batches
                          )
     trainer.fit(model, data_module)
     trainer.test(model, data_module)
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     parser.add_argument('--run_name', default=strftime("%m-%d-%Y_%H:%M:%S"), type=str, help='run_name for wandb')
     parser.add_argument('--limit_train_batches', default=None, type=int)
     parser.add_argument('--limit_val_batches', default=None, type=int)
+    parser.add_argument('--limit_test_batches', default=None, type=int)
     parser.add_argument('--precision', default='32', type=str, help='precision for training')
     args = parser.parse_args()
 
