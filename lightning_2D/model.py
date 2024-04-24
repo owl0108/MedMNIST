@@ -131,12 +131,12 @@ class GeneralistModel(L.LightningModule):
             auc = getAUC(all_preds, all_gts, task_type, self.device)
             accs.append(acc)
             aucs.append(auc)
-            self.log_dict({f"{mode}_ACC_"+task: acc, f"{mode}_AUC_"+task: auc})
+            self.log_dict({f"{mode}_ACC_"+task: acc, f"{mode}_AUC_"+task: auc}, on_epoch=True)
         
         avg_acc = torch.stack(accs).mean()
         avg_auc = torch.stack(aucs).mean()
-        self.log(f"{mode}_ACC", avg_acc)
-        self.log(f"{mode}_AUC", avg_auc)
+        self.log(f"{mode}_ACC", avg_acc, on_epoch=True)
+        self.log(f"{mode}_AUC", avg_auc, on_epoch=True)
         step_outputs.clear() # clear the outputs
 
     def on_training_epoch_end(self):
