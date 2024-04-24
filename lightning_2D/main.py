@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_epochs", default=None, type=int)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--data_dir", default="/scratch/izar/ishii")
-    parser.add_argument("--log_every_n_steps", default=50)
+    parser.add_argument("--log_every_n_steps", default=50, type=int)
     parser.add_argument('--run_name', default=strftime("%m-%d-%Y_%H:%M:%S"), type=str, help='run_name for wandb')
     parser.add_argument('--limit_train_batches', default=None, type=int)
     parser.add_argument('--limit_val_batches', default=None, type=int)
