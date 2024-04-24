@@ -89,7 +89,7 @@ class GeneralistModel(L.LightningModule):
         weighted_loss, loss_dict = self._on_shared_step(batch, 'train')
         log_dict = {'train_loss': weighted_loss}
         log_dict.update(loss_dict)
-        self.log_dict(log_dict)
+        self.log_dict(log_dict, on_step=True)
         # .zero_grad(), .backward(), .step() will be called automatically
         return weighted_loss
     
