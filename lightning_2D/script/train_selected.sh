@@ -1,0 +1,2 @@
+#!/bin/bash
+python main.py --run_name max_size_cycle_selected --log_every_n_steps 10 --precision '32' --accelerator 'gpu' --devices 1 --max_epochs 20 --batch_size 96 --data_dir /scratch/izar/ishii --tasks pathmnist dermamnist breastmnist tissuemnist organcmnist --iter_mode max_size_cycle

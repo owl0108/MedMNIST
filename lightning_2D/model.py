@@ -88,6 +88,7 @@ class GeneralistModel(L.LightningModule):
     def training_step(self, batch, batch_idx, dataloader_idx=0):
         weighted_loss, loss_dict = self._on_shared_step(batch, 'train')
         log_dict = {'train_loss': weighted_loss}
+        self.log('train_loss', weighted_loss)
         log_dict.update(loss_dict)
         self.log_dict(log_dict, on_step=True)
         # .zero_grad(), .backward(), .step() will be called automatically

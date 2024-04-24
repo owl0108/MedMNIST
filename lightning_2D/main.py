@@ -33,7 +33,9 @@ def main(hparams):
         save_top_k=1,
         mode="max"
     )
-    wandb_logger = WandbLogger(log_model='all', project='MedMNIST_lightning', name=hparams.run_name, config=hparams.__dict__)
+    wandb_logger = WandbLogger(log_model='all', project='MedMNIST_lightning',
+                               name=hparams.run_name+'_'+strftime("%m-%d-%Y_%H:%M:%S"),
+                               config=hparams.__dict__)
 
     trainer = pl.Trainer(logger=wandb_logger,
                          fast_dev_run=hparams.fast_dev_runs,
@@ -62,8 +64,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_epochs", default=None, type=int)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--data_dir", default="/scratch/izar/ishii")
-    parser.add_argument("--log_every_n_steps", default=50, type=int)
-    parser.add_argument('--run_name', default=strftime("%m-%d-%Y_%H:%M:%S"), type=str, help='run_name for wandb')
+    parser.add_argument("--log_every_n_steps", default=10, type=int)
+    parser.add_argument('--run_name', default='', type=str, help='run_name for wandb')
     parser.add_argument('--limit_train_batches', default=None, type=int)
     parser.add_argument('--limit_val_batches', default=None, type=int)
     parser.add_argument('--limit_test_batches', default=None, type=int)

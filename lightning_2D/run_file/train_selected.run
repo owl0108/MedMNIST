@@ -9,10 +9,10 @@
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --time=06:00:00
-#SBATCH --mem 8G
+#SBATCH --time=12:00:00
+#SBATCH --mem 16G
 
 # run within LibMTL_2D directory
 conda activate medmnist_lightning
 git checkout main
-bash script/train_pathmnist.sh
+bash script/train_selected.sh
