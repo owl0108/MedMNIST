@@ -62,13 +62,14 @@ class GeneralistModel(L.LightningModule):
             else:
                 inputs, target = batch_for_a_single_task
                 output = self.forward(inputs, task)
+                #TODO: add detach here
                 if mode == 'train':
-                    self.training_step_outputs[task].append((output, target))
+                    self.training_step_outputs[task].append((output.detach(), target.detach()))
                 elif mode == 'val':
-                    self.validation_step_outputs[task].append((output, target))
+                    self.validation_step_outputs[task].append((output.detach(), target.detach()))
                     mylist = self.validation_step_outputs['pathmnist']
                 elif mode == 'test':
-                    self.test_step_outputs[task].append((output, target))
+                    self.test_step_outputs[task].append((output.detach(), target.detach()))
                 else:
                     raise ValueError(f"mode {mode} is not supported")
                 
