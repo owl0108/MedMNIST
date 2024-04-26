@@ -1,4 +1,7 @@
 .DS_Store
+lightning_2D/script
+lightning_2D/slurm_out
+lightning_2Drun_f
 MedMNIST2D/output/
 LibMTL_2D/log/
 LibMTL_2D/wandb/
