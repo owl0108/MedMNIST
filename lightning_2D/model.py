@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from resnet import resnet18
 from medmnist.info import INFO
+from medmnist.selector import DSelect_k
 
 from utils import getACC, getAUC
 
@@ -23,8 +24,17 @@ class Encoder(nn.Module):
             # out = self.hidden_layer(out)
             return out
 
+class LinearModelHead(nn.Module):
+    def __init__(self, input_dim):
+        super(LinearModelHead, self).__init__()
+        self.fc = nn.Linear(input_dim, input_dim)
+    
+    def forward(self, x):
+        return self.fc(x)
+
+
 class GeneralistModel(L.LightningModule):
-    def __init__(self, tasks: List[str], lr=0.001, weighting: str='EW', **kwargs):
+    def __init__(self, tasks: List[str], lr=0.001, weighting: str='EW', selector=None, **kwargs):
         super().__init__()
         self.save_hyperparameters()
         self.INFO = INFO
@@ -34,8 +44,17 @@ class GeneralistModel(L.LightningModule):
         self.ce_loss = nn.CrossEntropyLoss()
 
         self.encoder = Encoder()
-        class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
         self.decoder = nn.ModuleDict({task: nn.Linear(512, class_num_dict[task]) for task in tasks})
+        if selector is None:
+            self.selector = None 
+        elif selector == 'DSelect_k':
+            self.selector = DSelect_k(task_name=tasks, encoder_class=LinearModelHead,
+                                  decoders=self.decoder, device=self.device,
+                                  multi_input=False, rep_grad=False, img_size=512,
+                                  num_experts=30, num_nonzeros=len(tasks),
+                                  kgamma=1.0)    
+        class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
+        
         if weighting == 'EW': # equal weighting
             self.weighting = torch.mean
         else:
@@ -47,11 +66,25 @@ class GeneralistModel(L.LightningModule):
         
 
     def forward(self, inputs, task):
+        """_summary_
+
+        Args:
+            inputs: input data
+            task: dataset name
+
+        Returns:
+            pred, selector_ouptut (Tensor, Optional[Tensor]): prediction and selector output (one-hot)
+        """
+        selector_output = None
         repr = self.encoder(inputs)
-        pred = self.decoder[task](repr)
-        return pred
+        if self.selector is None:
+            pred = self.decoder[task](repr)
+        else:
+            pred, selector_output = self.selector(repr, task)
+        return pred, selector_output # optionally return the second var
     
     def _on_shared_step(self, batch, mode):
+        selector_outputs = []
         losses = []
         loss_dict = {}
         for (task, batch_for_a_single_task) in batch.items():
@@ -61,7 +94,7 @@ class GeneralistModel(L.LightningModule):
                 continue
             else:
                 inputs, target = batch_for_a_single_task
-                output = self.forward(inputs, task)
+                output, selector_output = self.forward(inputs, task)
                 if mode == 'train':
                     self.training_step_outputs[task].append((output, target))
                 elif mode == 'val':
@@ -73,6 +106,7 @@ class GeneralistModel(L.LightningModule):
                     raise ValueError(f"mode {mode} is not supported")
                 
                 task_type = INFO[task]['task']
+                # compute task-wise loss
                 if task_type == "multi-label, binary-class":
                     loss_fn = self.bcewithlogitsloss
                     target = target.float()
@@ -80,6 +114,13 @@ class GeneralistModel(L.LightningModule):
                     loss_fn = self.ce_loss
                     target = torch.squeeze(target, 1) # reshape target for CrossEnropyLoss
                 loss = loss_fn(output, target)
+
+                # compute regularization loss from selector
+                if self.selector is not None:
+                    selector_loss_fn = self.selector.entropy_reg_loss
+                    selector_loss = selector_loss_fn(selector_output)
+                    loss += selector_loss
+                
                 losses.append(loss)
                 loss_dict[f"{mode}_loss_"+task] = loss
         losses = torch.stack(losses) # to Tensor

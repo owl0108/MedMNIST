@@ -1,10 +1,10 @@
 import math
+from typing import List
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
 
 class AbsArchitecture(nn.Module):
     r"""An abstract class for MTL architectures.
@@ -130,7 +130,28 @@ class DSelect_k(MMoE):
         kgamma (float, default=1.0): A scaling parameter for the smooth-step function.
 
     """
-    def __init__(self, task_name, encoder_class, decoders, rep_grad, multi_input, device, **kwargs):
+    class EntropyRegLoss(nn.Module):
+        def __init__(self, outer_instance):
+            self.outer_instance = outer_instance
+            super(DSelect_k.EntropyRegLoss, self).__init__()
+        
+        def forward(self, inputs):
+            return self.outer_instance._entropy_reg_loss(inputs)
+
+    def __init__(self, task_name, encoder_class, decoders, device, multi_input=True, rep_grad=False, **kwargs):
+        """Initialize DSelect_k
+        Args:
+            task_name (list): List of task names.
+            encoder_class (nn.Module): Class that works as an expert
+            decoders (nn.Module): A dictionary of name-decoder pairs of type (:class:`str`, :class:`torch.nn.Module`).
+            device: The device where model and data will be allocated.
+            multi_input : defaults to True
+            rep_grad: defaults to False
+            img_size (list): The size of input data. For example, [3, 244, 244] denotes input images with size 3x224x224.
+            num_experts (int): The number of experts shared by all the tasks. Each expert is an encoder network.
+            num_nonzeros (int): The number of selected experts.
+            kgamma (float, default=1.0): A scaling parameter for the smooth-step function.
+        """
         super(DSelect_k, self).__init__(task_name, encoder_class, decoders, rep_grad, multi_input, device, **kwargs)
         
         self._num_nonzeros = self.kwargs['num_nonzeros']
@@ -142,6 +163,7 @@ class DSelect_k(MMoE):
         self._z_logits = nn.ModuleDict({task: nn.Linear(self.input_size, 
                                                         self._num_nonzeros*self._num_binary) for task in self.task_name})
         self._w_logits = nn.ModuleDict({task: nn.Linear(self.input_size, self._num_nonzeros) for task in self.task_name})
+        self.entropy_reg_loss = self.EntropyRegLoss(self)
         
         # initialization
         for param in self._z_logits.parameters():
@@ -164,9 +186,39 @@ class DSelect_k(MMoE):
         loss = -(inputs*torch.log(inputs+1e-6)).sum() * 1e-6
         if not self._power_of_2:
             loss += (1/inputs.sum(-1)).sum()
-        loss.backward(retain_graph=True)
+        return loss
+        #loss.backward(retain_graph=True)
     
-    def forward(self, inputs, task_name=None):
+    def forward(self, inputs, task):
+        """Forward path for a particular task.
+
+        Args:
+            inputs: Input to selector
+            task: A specific dataset name.
+
+        Returns:
+            _description_
+        """
+        experts_shared_rep = torch.stack([e(inputs) for e in self.experts_shared])
+
+        sample_logits = self._z_logits[task](torch.flatten(inputs, start_dim=1))
+        sample_logits = sample_logits.reshape(-1, self._num_nonzeros, 1, self._num_binary)
+        smooth_step_activations = self._smooth_step_fun(sample_logits)
+        selector_output = torch.where(self._binary_codes.unsqueeze(0), smooth_step_activations, 
+                                        1 - smooth_step_activations).prod(3)
+        selector_weights = F.softmax(self._w_logits[task](torch.flatten(inputs, start_dim=1)), dim=1)
+        expert_weights = torch.einsum('ij, ij... -> i...', selector_weights, selector_outputs)
+        gate_rep = torch.einsum('ij, ji... -> i...', expert_weights, experts_shared_rep)
+        gate_rep = self._prepare_rep(gate_rep, task, same_rep=False)
+        pred = self.decoders[task](gate_rep)
+        
+        # if self.training:
+        #     # backward
+        #     self._entropy_reg_loss(selector_outputs)
+        #NOTE: what is the shape of selector_outputs ???
+        return pred, selector_output
+
+    def _forward(self, inputs, task_name=None):
         experts_shared_rep = torch.stack([e(inputs) for e in self.experts_shared])
         out = {}
         for task in self.task_name:
