@@ -1,2 +1,0 @@
-#!/bin/bash
-python main.py --run_name debug_pathmnist --log_every_n_steps 1 --limit_train_batches 20 --limit_val_batches 10 --limit_test_batches 10 --precision '32' --accelerator 'gpu' --devices 1 --max_epochs 5 --batch_size 96 --data_dir /scratch/izar/ishii --tasks pathmnist --iter_mode max_size
