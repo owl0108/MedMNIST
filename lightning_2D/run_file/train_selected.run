@@ -10,9 +10,9 @@
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --time=12:00:00
-#SBATCH --mem 16G
+#SBATCH --mem 8G
 
 # run within LibMTL_2D directory
 conda activate medmnist_lightning
 git checkout main
-bash script/train_selected.sh
+bash script/train_selected_max_size_cycle.sh
