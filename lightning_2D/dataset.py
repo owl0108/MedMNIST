@@ -12,7 +12,7 @@ from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
 class MedMNISTDataModule(L.LightningDataModule):
-    def __init__(self, tasks: List[str], batch_size, iter_mode, data_dir: str = "./", resize=True):
+    def __init__(self, tasks: List[str], batch_size, iter_mode, data_dir: str = "./", resize=True, **kwargs):
         super().__init__()
         def medmnist_transform(resize=True):
             """Resize images of size 28x28 to 224x224

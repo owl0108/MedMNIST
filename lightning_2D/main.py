@@ -10,21 +10,15 @@ from model import GeneralistModel
 from dataset import MedMNISTDataModule
 
 def main(hparams):
-    pl.seed_everything(1)
-
+    #pl.seed_everything(1)
     if hparams.tasks == ['all']:
         hparams.tasks = ['pathmnist', 'octmnist', 'pneumoniamnist', 'chestmnist', 'dermamnist', 'retinamnist',
                       'breastmnist', 'bloodmnist', 'organsmnist', 'tissuemnist', 'organamnist', 'organcmnist', 'organsmnist']
         
     print(f"Datasets to be used: {hparams.tasks}")
-
-    model = GeneralistModel(hparams.tasks)
-    data_module = MedMNISTDataModule(tasks=hparams.tasks,
-                                     iter_mode=hparams.iter_mode,
-                                     batch_size=hparams.batch_size,
-                                     data_dir=hparams.data_dir,
-                                     resize=True
-                                     )
+    kwargs = hparams.__dict__
+    model = GeneralistModel(**kwargs)
+    data_module = MedMNISTDataModule(**kwargs)
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_ACC",
@@ -70,6 +64,8 @@ if __name__ == "__main__":
     parser.add_argument('--limit_val_batches', default=None, type=int)
     parser.add_argument('--limit_test_batches', default=None, type=int)
     parser.add_argument('--precision', default='32', type=str)
+    parser.add_argument('--selector', default='32', type=str)
+    parser.add_argument('--num_experts', default=20, type=int)
     args = parser.parse_args()
 
     main(args)

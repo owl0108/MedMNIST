@@ -94,8 +94,8 @@ class MMoE(AbsArchitecture):
         
         self.img_size = self.kwargs['img_size']
         self.input_size = np.array(self.img_size, dtype=int).prod()
-        self.num_experts = self.kwargs['num_experts'][0]
-        self.experts_shared = nn.ModuleList([encoder_class() for _ in range(self.num_experts)])
+        self.num_experts = self.kwargs['num_experts']
+        self.experts_shared = nn.ModuleList([encoder_class(self.img_size) for _ in range(self.num_experts)])
         self.gate_specific = nn.ModuleDict({task: nn.Sequential(nn.Linear(self.input_size, self.num_experts),
                                                                 nn.Softmax(dim=-1)) for task in self.task_name})
         
@@ -117,6 +117,17 @@ class MMoE(AbsArchitecture):
     def zero_grad_share_params(self):
         self.experts_shared.zero_grad(set_to_none=False)
 
+class EntropyRegLoss(nn.Module):
+    def __init__(self, power_of_2):
+        super(EntropyRegLoss, self).__init__()
+        self._power_of_2 = power_of_2
+    
+    def forward(self, inputs):
+        loss = -(inputs*torch.log(inputs+1e-6)).sum() * 1e-6
+        if not self._power_of_2:
+            loss += (1/inputs.sum(-1)).sum()
+        return loss
+
 class DSelect_k(MMoE):
     r"""DSelect-k.
     
@@ -130,14 +141,6 @@ class DSelect_k(MMoE):
         kgamma (float, default=1.0): A scaling parameter for the smooth-step function.
 
     """
-    class EntropyRegLoss(nn.Module):
-        def __init__(self, outer_instance):
-            self.outer_instance = outer_instance
-            super(DSelect_k.EntropyRegLoss, self).__init__()
-        
-        def forward(self, inputs):
-            return self.outer_instance._entropy_reg_loss(inputs)
-
     def __init__(self, task_name, encoder_class, decoders, device, multi_input=True, rep_grad=False, **kwargs):
         """Initialize DSelect_k
         Args:
@@ -163,7 +166,7 @@ class DSelect_k(MMoE):
         self._z_logits = nn.ModuleDict({task: nn.Linear(self.input_size, 
                                                         self._num_nonzeros*self._num_binary) for task in self.task_name})
         self._w_logits = nn.ModuleDict({task: nn.Linear(self.input_size, self._num_nonzeros) for task in self.task_name})
-        self.entropy_reg_loss = self.EntropyRegLoss(self)
+        self.entropy_reg_loss = EntropyRegLoss(self._power_of_2)
         
         # initialization
         for param in self._z_logits.parameters():
@@ -207,7 +210,7 @@ class DSelect_k(MMoE):
         selector_output = torch.where(self._binary_codes.unsqueeze(0), smooth_step_activations, 
                                         1 - smooth_step_activations).prod(3)
         selector_weights = F.softmax(self._w_logits[task](torch.flatten(inputs, start_dim=1)), dim=1)
-        expert_weights = torch.einsum('ij, ij... -> i...', selector_weights, selector_outputs)
+        expert_weights = torch.einsum('ij, ij... -> i...', selector_weights, selector_output)
         gate_rep = torch.einsum('ij, ji... -> i...', expert_weights, experts_shared_rep)
         gate_rep = self._prepare_rep(gate_rep, task, same_rep=False)
         pred = self.decoders[task](gate_rep)
