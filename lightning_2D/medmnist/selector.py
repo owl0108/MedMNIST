@@ -28,8 +28,7 @@ class AbsArchitecture(nn.Module):
         self.decoders = decoders
         self.rep_grad = rep_grad
         self.multi_input = multi_input
-        # not necessarily intialize in __init__
-        self.device = device if device is not None else self.device
+        self.device = device
         self.kwargs = kwargs
         
         if self.rep_grad:

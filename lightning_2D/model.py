@@ -64,7 +64,6 @@ class GeneralistModel(L.LightningModule):
         if self.selector_type is None:
             self.selector = None 
         elif self.selector_type == 'DSelect_k':
-            print(self.kwargs.keys())
             self.selector = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=512,
