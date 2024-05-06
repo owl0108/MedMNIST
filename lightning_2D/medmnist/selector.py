@@ -178,9 +178,8 @@ class DSelect_k(MMoE):
         binary_matrix = np.array([list(np.binary_repr(val, width=self._num_binary)) \
                                   for val in range(self.num_experts)]).astype(bool)
         
-        # self._binary_codes = torch.from_numpy(binary_matrix).to(self.device).unsqueeze(0)
-        #NOTE: will to be handled automatically?
-        self._binary_codes = torch.from_numpy(binary_matrix).unsqueeze(0)  
+        self._binary_codes = torch.from_numpy(binary_matrix).to(self.device).unsqueeze(0)
+        # self._binary_codes = torch.from_numpy(binary_matrix).unsqueeze(0)  
         self.gate_specific = None
         
     def _smooth_step_fun(self, t, gamma=1.0):
