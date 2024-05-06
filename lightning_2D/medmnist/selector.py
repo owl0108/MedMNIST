@@ -19,7 +19,7 @@ class AbsArchitecture(nn.Module):
         kwargs (dict): A dictionary of hyperparameters of architectures.
      
     """
-    def __init__(self, task_name, encoder_class, decoders, rep_grad, multi_input, device, **kwargs):
+    def __init__(self, task_name, encoder_class, decoders, rep_grad, multi_input, device=None, **kwargs):
         super(AbsArchitecture, self).__init__()
         
         self.task_name = task_name
@@ -28,7 +28,8 @@ class AbsArchitecture(nn.Module):
         self.decoders = decoders
         self.rep_grad = rep_grad
         self.multi_input = multi_input
-        self.device = device
+        # not necessarily intialize in __init__
+        self.device = device if device is not None else self.device
         self.kwargs = kwargs
         
         if self.rep_grad:
@@ -46,6 +47,7 @@ class AbsArchitecture(nn.Module):
             dict: A dictionary of name-prediction pairs of type (:class:`str`, :class:`torch.Tensor`).
         """
         out = {}
+        #TODO: bug???
         s_rep = self.encoder(inputs)
         same_rep = True if not isinstance(s_rep, list) and not self.multi_input else False
         for tn, task in enumerate(self.task_name):
@@ -141,7 +143,7 @@ class DSelect_k(MMoE):
         kgamma (float, default=1.0): A scaling parameter for the smooth-step function.
 
     """
-    def __init__(self, task_name, encoder_class, decoders, device, multi_input=True, rep_grad=False, **kwargs):
+    def __init__(self, task_name, encoder_class, decoders, device=None, multi_input=True, rep_grad=False, **kwargs):
         """Initialize DSelect_k
         Args:
             task_name (list): List of task names.
@@ -176,8 +178,10 @@ class DSelect_k(MMoE):
         
         binary_matrix = np.array([list(np.binary_repr(val, width=self._num_binary)) \
                                   for val in range(self.num_experts)]).astype(bool)
-        self._binary_codes = torch.from_numpy(binary_matrix).to(self.device).unsqueeze(0)  
         
+        # self._binary_codes = torch.from_numpy(binary_matrix).to(self.device).unsqueeze(0)
+        #NOTE: will to be handled automatically?
+        self._binary_codes = torch.from_numpy(binary_matrix).unsqueeze(0)  
         self.gate_specific = None
         
     def _smooth_step_fun(self, t, gamma=1.0):
@@ -191,6 +195,9 @@ class DSelect_k(MMoE):
             loss += (1/inputs.sum(-1)).sum()
         return loss
         #loss.backward(retain_graph=True)
+    
+    def set_device(self, device):
+        self.device = device
     
     def forward(self, inputs, task):
         """Forward path for a particular task.
