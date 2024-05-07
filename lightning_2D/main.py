@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument("--devices", default=1)
     parser.add_argument("--max_epochs", default=None, type=int)
     parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--data_dir", default="/scratch/izar/ishii")
+    parser.add_argument("--data_dir", default="/scratch/jed/ishii")
     parser.add_argument("--log_every_n_steps", default=10, type=int)
     parser.add_argument('--run_name', default='', type=str, help='run_name for wandb')
     parser.add_argument('--limit_train_batches', default=None, type=int)

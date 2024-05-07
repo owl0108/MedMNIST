@@ -38,7 +38,7 @@ class MedMNISTDataModule(L.LightningDataModule):
         self.iter_mode = iter_mode
         self.transform = medmnist_transform(resize)
 
-    def setup(self, stage: str, download=False):
+    def setup(self, stage: str, download=True):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit":
             self.train_ds_dict = {task: getattr(medclasses, INFO[task]['python_class'])(

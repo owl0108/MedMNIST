@@ -46,7 +46,7 @@ class GeneralistModel(L.LightningModule):
         self.ce_loss = nn.CrossEntropyLoss()
 
         class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
-        self.encoder = Encoder()
+        # self.encoder = Encoder()
         self.decoder = nn.ModuleDict({task: nn.Linear(512, class_num_dict[task]) for task in tasks})    
         if weighting == 'EW': # equal weighting
             self.weighting = torch.mean
@@ -58,16 +58,23 @@ class GeneralistModel(L.LightningModule):
         self.test_step_outputs = {task: [] for task in tasks}
         self.kwargs = kwargs
         
-    def setup(self, stage):
+    def configure_model(self):
         # in order to give the correct self.device to DSelect_k
         # the model is moved to device after starting training
         if self.selector_type is None:
             self.selector = None 
         elif self.selector_type == 'DSelect_k':
-            self.selector = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
+            # self.selector = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
+            #                       decoders=self.decoder, device=self.device,
+            #                       multi_input=False, rep_grad=False, img_size=512,
+            #                       num_experts=self.kwargs['num_experts'], num_nonzeros=len(self.tasks),
+            #                       kgamma=1.0)
+            
+            # TODO: check if size is in correct format
+            self.selector = DSelect_k(task_name=self.tasks, encoder_class=Encoder,
                                   decoders=self.decoder, device=self.device,
-                                  multi_input=False, rep_grad=False, img_size=512,
-                                  num_experts=self.kwargs['num_experts'], num_nonzeros=len(self.tasks),
+                                  multi_input=False, rep_grad=False, img_size=[3, 224, 224],
+                                  num_experts=self.kwargs['num_experts'], num_nonzeros=2,
                                   kgamma=1.0)  
 
     def forward(self, inputs, task):
@@ -80,12 +87,13 @@ class GeneralistModel(L.LightningModule):
         Returns:
             pred, selector_ouptut (Tensor, Optional[Tensor]): prediction and selector output (one-hot)
         """
-        selector_output = None
-        repr = self.encoder(inputs)
-        if self.selector is None:
-            pred = self.decoder[task](repr)
-        else:
-            pred, selector_output = self.selector(repr, task)
+        # selector_output = None
+        # repr = self.encoder(inputs)
+        # if self.selector is None:
+        #     pred = self.decoder[task](repr)
+        # else:
+        #     pred, selector_output = self.selector(repr, task)
+        pred, selector_output = self.selector(inputs, task)
         return pred, selector_output # optionally return the second var
 
     def _on_shared_step(self, batch, mode):
