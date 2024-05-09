@@ -194,7 +194,7 @@ class GeneralistModel(L.LightningModule):
         self.log(f"{mode}_AUC", avg_auc, on_epoch=True)
         step_outputs.clear() # clear the outputs
 
-    def on_training_epoch_end(self):
+    def on_train_epoch_end(self):
         self._on_shared_epoch_end('train')
         self.training_step_outputs = {task: [] for task in self.tasks}
 
