@@ -133,7 +133,6 @@ class EntropyRegLoss(nn.Module):
             # loss += (1/inputs.sum(-1)).sum()
             loss += (1/inputs.sum(-1).clamp(min=1e-2)).sum()
             loss = loss.div(num_batch*num_non_zero_experts) - 1 # regularization term cannot be more than 1
-            print("inside reg loss: ", loss)
         return loss
 
 class DSelect_k(MMoE):
