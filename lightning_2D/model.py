@@ -131,8 +131,9 @@ class GeneralistModel(L.LightningModule):
                 if self.selector is not None:
                     selector_loss_fn = self.selector.entropy_reg_loss
                     selector_loss = selector_loss_fn(selector_output)
+                    # print("loss: ", loss)
+                    # print("selector loss: ", selector_loss)
                     loss += selector_loss
-                
                 losses.append(loss)
                 loss_dict[f"{mode}_loss_"+task] = loss
         losses = torch.stack(losses) # to Tensor

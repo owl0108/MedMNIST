@@ -42,7 +42,8 @@ def main(hparams):
                          log_every_n_steps=hparams.log_every_n_steps,
                          limit_train_batches=hparams.limit_train_batches,
                          limit_val_batches=hparams.limit_val_batches,
-                         limit_test_batches=hparams.limit_test_batches
+                         limit_test_batches=hparams.limit_test_batches,
+                         detect_anomaly=hparams.detect_anomaly
                          )
     trainer.fit(model, data_module)
     trainer.test(model, data_module)
@@ -66,6 +67,7 @@ if __name__ == "__main__":
     parser.add_argument('--precision', default='32', type=str)
     parser.add_argument('--selector', default='32', type=str)
     parser.add_argument('--num_experts', default=20, type=int)
+    parser.add_argument('--detect_anomaly', default=False, type=bool)
     args = parser.parse_args()
 
     main(args)

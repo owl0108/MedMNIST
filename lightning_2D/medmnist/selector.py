@@ -128,7 +128,12 @@ class EntropyRegLoss(nn.Module):
     def forward(self, inputs):
         loss = -(inputs*torch.log(inputs+1e-6)).sum() * 1e-6
         if not self._power_of_2:
-            loss += (1/inputs.sum(-1)).sum()
+            num_batch = inputs.shape[0]
+            num_non_zero_experts = inputs.shape[1]
+            # loss += (1/inputs.sum(-1)).sum()
+            loss += (1/inputs.sum(-1).clamp(min=1e-2)).sum()
+            loss = loss.div(num_batch*num_non_zero_experts) - 1 # regularization term cannot be more than 1
+            print("inside reg loss: ", loss)
         return loss
 
 class DSelect_k(MMoE):
@@ -214,6 +219,8 @@ class DSelect_k(MMoE):
         sample_logits = self._z_logits[task](torch.flatten(inputs, start_dim=1))
         sample_logits = sample_logits.reshape(-1, self._num_nonzeros, 1, self._num_binary)
         smooth_step_activations = self._smooth_step_fun(sample_logits)
+
+        # TODO: fix infinity error here
         selector_output = torch.where(self._binary_codes.unsqueeze(0), smooth_step_activations, 
                                         1 - smooth_step_activations).prod(3)
         selector_weights = F.softmax(self._w_logits[task](torch.flatten(inputs, start_dim=1)), dim=1)
@@ -227,25 +234,3 @@ class DSelect_k(MMoE):
         #     self._entropy_reg_loss(selector_outputs)
         #NOTE: what is the shape of selector_outputs ???
         return pred, selector_output
-
-    def _forward(self, inputs, task_name=None):
-        experts_shared_rep = torch.stack([e(inputs) for e in self.experts_shared])
-        out = {}
-        for task in self.task_name:
-            if task_name is not None and task != task_name:
-                continue
-            sample_logits = self._z_logits[task](torch.flatten(inputs, start_dim=1))
-            sample_logits = sample_logits.reshape(-1, self._num_nonzeros, 1, self._num_binary)
-            smooth_step_activations = self._smooth_step_fun(sample_logits)
-            selector_outputs = torch.where(self._binary_codes.unsqueeze(0), smooth_step_activations, 
-                                           1 - smooth_step_activations).prod(3)
-            selector_weights = F.softmax(self._w_logits[task](torch.flatten(inputs, start_dim=1)), dim=1)
-            expert_weights = torch.einsum('ij, ij... -> i...', selector_weights, selector_outputs)
-            gate_rep = torch.einsum('ij, ji... -> i...', expert_weights, experts_shared_rep)
-            gate_rep = self._prepare_rep(gate_rep, task, same_rep=False)
-            out[task] = self.decoders[task](gate_rep)
-        
-        if self.training:
-            # backward
-            self._entropy_reg_loss(selector_outputs)
-        return out
