@@ -4,23 +4,28 @@ import lightning as L
 import torch
 import torch.nn as nn
 from resnet import resnet18
+from convnext_model.convnext import convnext_tiny
 from medmnist.info import INFO
 from medmnist.selector import DSelect_k
 
 from utils import getACC, getAUC
 
 class Encoder(nn.Module):
-        def __init__(self):
+        def __init__(self, encoder_type='resnet18'):
             super(Encoder, self).__init__()
             # hidden_dim = 512
-            self.resnet_network = resnet18(pretrained=False)
+            if encoder_type == 'resnet18':
+                self.network = resnet18(pretrained=False) # already global avg pooled
+            elif encoder_type == 'convnext_tiny':
+                self.network = convnext_tiny(pretrained=False,num_classes=512) # alrady global avg pooled
             # Use raw output from resnet18
-            self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+            #self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
             
         def forward(self, inputs):
-            out = self.resnet_network(inputs) # out: 512 planes, 7x7?
-            out = torch.flatten(self.avgpool(out), 1) # get one value from each plane
+            out = self.network(inputs) # out: 512 planes, 7x7?
+            out = torch.flatten(out, start_dim=1)
+            #out = torch.flatten(self.avgpool(out), 1) # get one value from each plane
             # out = self.hidden_layer(out)
             return out
 
@@ -69,13 +74,10 @@ class GeneralistModel(L.LightningModule):
             #                       multi_input=False, rep_grad=False, img_size=512,
             #                       num_experts=self.kwargs['num_experts'], num_nonzeros=len(self.tasks),
             #                       kgamma=1.0)
-            
-            # TODO: check if size is in correct format
             self.selector = DSelect_k(task_name=self.tasks, encoder_class=Encoder,
                                   decoders=self.decoder, device=self.device,
-                                  multi_input=False, rep_grad=False, img_size=[3, 224, 224],
-                                  num_experts=self.kwargs['num_experts'], num_nonzeros=2,
-                                  kgamma=1.0)  
+                                  multi_input=False, rep_grad=False, img_size=[3, 224, 224], num_nonzeros=2,
+                                  kgamma=1.0, **self.kwargs)  
 
     def forward(self, inputs, task):
         """Forward path

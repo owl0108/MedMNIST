@@ -98,7 +98,7 @@ class MMoE(AbsArchitecture):
         self.num_experts = self.kwargs['num_experts']
         # NOTE: when encoder is resnet, the following line is not correct
         # self.experts_shared = nn.ModuleList([encoder_class(self.img_size) for _ in range(self.num_experts)])
-        self.experts_shared = nn.ModuleList([encoder_class() for _ in range(self.num_experts)])
+        self.experts_shared = nn.ModuleList([encoder_class(encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
         self.gate_specific = nn.ModuleDict({task: nn.Sequential(nn.Linear(self.input_size, self.num_experts),
                                                                 nn.Softmax(dim=-1)) for task in self.task_name})
         
