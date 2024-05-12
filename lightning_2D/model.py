@@ -45,6 +45,7 @@ class GeneralistModel(L.LightningModule):
         self.INFO = INFO
         self.tasks = tasks
         self.lr = lr
+        self.encoder = Encoder(kwargs['encoder_type'])
         self.selector_type = selector
         self.selector = None
         self.bcewithlogitsloss = nn.BCEWithLogitsLoss()
@@ -66,19 +67,16 @@ class GeneralistModel(L.LightningModule):
     def configure_model(self):
         # in order to give the correct self.device to DSelect_k
         # the model is moved to device after starting training
-        if self.selector_type is None:
-            self.selector = None 
-        elif self.selector_type == 'DSelect_k':
-            # self.selector = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
-            #                       decoders=self.decoder, device=self.device,
-            #                       multi_input=False, rep_grad=False, img_size=512,
-            #                       num_experts=self.kwargs['num_experts'], num_nonzeros=len(self.tasks),
-            #                       kgamma=1.0)
+        if self.selector_type == 'DSelect_k':
             self.selector = DSelect_k(task_name=self.tasks, encoder_class=Encoder,
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=[3, 224, 224], num_nonzeros=2,
-                                  kgamma=1.0, **self.kwargs)  
-
+                                  kgamma=1.0, **self.kwargs)
+        elif self.selector_type is None:
+            self.selector = None
+        else:
+            raise NotImplementedError(f"Selector type {self.selector_type} is not implemented")
+        
     def forward(self, inputs, task):
         """Forward path
 
@@ -91,11 +89,15 @@ class GeneralistModel(L.LightningModule):
         """
         # selector_output = None
         # repr = self.encoder(inputs)
-        # if self.selector is None:
-        #     pred = self.decoder[task](repr)
+        
         # else:
         #     pred, selector_output = self.selector(repr, task)
-        pred, selector_output = self.selector(inputs, task)
+        if self.selector is None:
+            out = self.encoder(inputs)
+            pred = self.decoder[task](out)
+            selector_output = None
+        else:
+            pred, selector_output = self.selector(inputs, task)
         return pred, selector_output # optionally return the second var
 
     def _on_shared_step(self, batch, mode):
@@ -109,7 +111,7 @@ class GeneralistModel(L.LightningModule):
                 continue
             else:
                 inputs, target = batch_for_a_single_task
-                output, selector_output = self.forward(inputs, task)
+                output, selector_output = self.forward(inputs, task) # selector_output is None if selector is None
                 if mode == 'train':
                     self.training_step_outputs[task].append((output.detach(), target.detach()))
                 elif mode == 'val':
@@ -135,7 +137,7 @@ class GeneralistModel(L.LightningModule):
                     selector_loss = selector_loss_fn(selector_output)
                     # print("loss: ", loss)
                     # print("selector loss: ", selector_loss)
-                    loss += selector_loss
+                    loss = loss + selector_loss
                 losses.append(loss)
                 loss_dict[f"{mode}_loss_"+task] = loss
         losses = torch.stack(losses) # to Tensor

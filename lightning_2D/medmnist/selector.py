@@ -131,7 +131,7 @@ class EntropyRegLoss(nn.Module):
             num_batch = inputs.shape[0]
             num_non_zero_experts = inputs.shape[1]
             # loss += (1/inputs.sum(-1)).sum()
-            loss += (1/inputs.sum(-1).clamp(min=1e-2)).sum()
+            loss  = loss + (1/inputs.sum(-1).clamp(min=1e-2)).sum()
             loss = loss.div(num_batch*num_non_zero_experts) - 1 # regularization term cannot be more than 1
         return loss
 
@@ -196,7 +196,7 @@ class DSelect_k(MMoE):
     def _entropy_reg_loss(self, inputs):
         loss = -(inputs*torch.log(inputs+1e-6)).sum() * 1e-6
         if not self._power_of_2:
-            loss += (1/inputs.sum(-1)).sum()
+            loss = loss + (1/inputs.sum(-1)).sum()
         return loss
         #loss.backward(retain_graph=True)
     
