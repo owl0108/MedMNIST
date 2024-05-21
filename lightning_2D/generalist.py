@@ -3,6 +3,9 @@ from typing import List
 import lightning as L
 import torch
 import torch.nn as nn
+from torch.nn import MultiheadAttention
+
+
 from resnet import resnet18
 from convnext_model.convnext import convnext_tiny
 from medmnist.info import INFO
@@ -12,21 +15,27 @@ from utils import getACC, getAUC
 from model import LinearModelHead, Encoder
 
 class GeneralistModel(L.LightningModule):
-    def __init__(self, tasks: List[str], lr=0.001, weighting: str='EW', selector=None, **kwargs):
+    def __init__(self, tasks: List[str], lr=0.001, weighting: str='EW', head=None, **kwargs):
         super().__init__()
         self.save_hyperparameters()
         self.INFO = INFO
         self.tasks = tasks
         self.lr = lr
-        self.encoder = None
-        self.selector_type = selector
-        self.selector = None
+        self.head_type = head
+        self.head = None
         self.bcewithlogitsloss = nn.BCEWithLogitsLoss()
         self.ce_loss = nn.CrossEntropyLoss()
-
+        pretrained = kwargs['pretrained']
+        encoder_type = kwargs['encoder_type']
         class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
-        self.encoder = Encoder(kwargs['encoder_type'])
-        self.decoder = nn.ModuleDict({task: nn.Linear(512, class_num_dict[task]) for task in tasks})    
+        self.encoder = Encoder(pretrained, encoder_type) # encoder_type has to be passed to DSelect_k, so don't explicitly specify in __init__
+
+        if pretrained and encoder_type == 'convnext_tiny': # to be compatible with pretrained weight
+            self.decoder_input_size = 21841
+        else:
+            self.decoder_input_size = 512
+        self.decoder = nn.ModuleDict({task: nn.Linear(self.decoder_input_size, class_num_dict[task]) for task in tasks})
+        
         if weighting == 'EW': # equal weighting
             self.weighting = torch.mean
         else:
@@ -40,22 +49,24 @@ class GeneralistModel(L.LightningModule):
     def configure_model(self):
         # in order to give the correct self.device to DSelect_k
         # the model is moved to device after starting training
-        if self.selector_type == "DSelect_k_LinearHead":
+        if self.head_type == "DSelect_k_LinearHead":
             # linear heads as experts
-            self.selector = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
+            self.head = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
                                   decoders=self.decoder, device=self.device,
-                                  multi_input=False, rep_grad=False, img_size=512, num_nonzeros=2,
+                                  multi_input=False, rep_grad=False, img_size=self.decoder_input_size, num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
-        elif self.selector_type == 'DSelect_k':
+        elif self.head_type == 'DSelect_k':
             # resnet or convnext as experts
-            self.selector = DSelect_k(task_name=self.tasks, encoder_class=type(self.encoder),
+            self.head = DSelect_k(task_name=self.tasks, encoder_class=type(self.encoder),
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=[3, 224, 224], num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
-        elif self.selector_type is None:
-            self.selector = None
+        elif self.head_type == 'MultiheadAttention':
+            self.head = MultiheadAttention()
+        elif self.head_type is None:
+            self.head = None
         else:
-            raise NotImplementedError(f"Selector type {self.selector_type} is not implemented")
+            raise NotImplementedError(f"Head type {self.head_type} is not implemented")
         
     def forward(self, inputs, task):
         """Forward path
@@ -65,26 +76,21 @@ class GeneralistModel(L.LightningModule):
             task: dataset name
 
         Returns:
-            pred, selector_ouptut (Tensor, Optional[Tensor]): prediction and selector output (one-hot)
+            pred, head_ouptut (Tensor, Optional[Tensor]): prediction and head output (one-hot)
         """
-        # selector_output = None
-        # repr = self.encoder(inputs)
-        
-        # else:
-        #     pred, selector_output = self.selector(repr, task)
-        if self.selector_type is None:
+        if self.head_type is None:
             out = self.encoder(inputs)
             pred = self.decoder[task](out)
-            selector_output = None
-        elif self.selector_type == 'DSelect_k':
-            pred, selector_output = self.selector(inputs, task)
-        elif self.selector_type == 'DSelect_k_LinearHead':
+            head_output = None
+        elif self.head_type == 'DSelect_k':
+            pred, head_output = self.head(inputs, task)
+        elif self.head_type == 'DSelect_k_LinearHead':
             out = self.encoder(inputs)
-            pred, selector_output = self.selector(out, task)
-        return pred, selector_output # optionally return the second var
+            pred, head_output = self.head(out, task)
+        return pred, head_output # optionally return the second var
 
     def _on_shared_step(self, batch, mode):
-        selector_outputs = []
+        head_outputs = []
         losses = []
         loss_dict = {}
         for (task, batch_for_a_single_task) in batch.items():
@@ -94,7 +100,7 @@ class GeneralistModel(L.LightningModule):
                 continue
             else:
                 inputs, target = batch_for_a_single_task
-                output, selector_output = self.forward(inputs, task) # selector_output is None if selector is None
+                output, head_output = self.forward(inputs, task) # head_output is None if head is None
                 if mode == 'train':
                     self.training_step_outputs[task].append((output.detach(), target.detach()))
                 elif mode == 'val':
@@ -114,13 +120,11 @@ class GeneralistModel(L.LightningModule):
                     target = torch.squeeze(target, 1) # reshape target for CrossEnropyLoss
                 loss = loss_fn(output, target)
 
-                # compute regularization loss from selector
-                if self.selector is not None:
-                    selector_loss_fn = self.selector.entropy_reg_loss
-                    selector_loss = selector_loss_fn(selector_output)
-                    # print("loss: ", loss)
-                    # print("selector loss: ", selector_loss)
-                    loss = loss + selector_loss
+                # compute regularization loss from DSeleckt_k
+                if type(self.head) == DSelect_k:
+                    head_loss_fn = self.head.entropy_reg_loss
+                    head_loss = head_loss_fn(head_output)
+                    loss = loss + head_loss
                 losses.append(loss)
                 loss_dict[f"{mode}_loss_"+task] = loss
         losses = torch.stack(losses) # to Tensor

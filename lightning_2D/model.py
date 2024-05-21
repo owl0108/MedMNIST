@@ -4,13 +4,16 @@ from resnet import resnet18
 from convnext_model.convnext import convnext_tiny
 
 class Encoder(nn.Module):
-        def __init__(self, encoder_type='resnet18'):
+        def __init__(self, pretrained, encoder_type='resnet18'):
             super(Encoder, self).__init__()
             # hidden_dim = 512
             if encoder_type == 'resnet18':
-                self.network = resnet18(pretrained=False) # already global avg pooled
+                self.network = resnet18(pretrained) # already global avg pooled
             elif encoder_type == 'convnext_tiny':
-                self.network = convnext_tiny(pretrained=False, num_classes=512) # alrady global avg pooled
+                if pretrained:
+                     self.network = convnext_tiny(pretrained=False, in_22k=True, num_classes=21841)
+                else:
+                     self.network = convnext_tiny(pretrained=False, num_classes=512) # alrady global avg pooled
 
             
         def forward(self, inputs):

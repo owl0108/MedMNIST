@@ -99,9 +99,9 @@ class MMoE(AbsArchitecture):
         self.num_experts = self.kwargs['num_experts']
         # NOTE: differentiate LinearHead and others
         if encoder_class == Encoder:
-            self.experts_shared = nn.ModuleList([encoder_class(encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
+            self.experts_shared = nn.ModuleList([Encoder(pretrained=kwargs['pretrained'], encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
         elif encoder_class == LinearModelHead:
-            self.experts_shared = nn.ModuleList([encoder_class(self.img_size) for _ in range(self.num_experts)])
+            self.experts_shared = nn.ModuleList([LinearModelHead(input_dim=self.img_size) for _ in range(self.num_experts)])
         else:
             raise ValueError("Encoder class not supported")
     

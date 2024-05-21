@@ -1,10 +1,10 @@
-from argparse import ArgumentParser
 from time import strftime
 
 import lightning as pl
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
+from jsonargparse import ActionConfigFile, ArgumentParser
 
 from generalist import GeneralistModel
 from dataset import MedMNISTDataModule
@@ -52,8 +52,11 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+
+    # add arguments
+    parser = ArgumentParser()
     parser.add_argument("--iter_mode", default="max_size")
-    parser.add_argument("--fast_dev_runs", type=int, default=False)
+    parser.add_argument("--fast_dev_runs", default=0, type=int)
     parser.add_argument("--tasks", nargs='+', default=["all"])
     parser.add_argument("--accelerator", default="auto")
     parser.add_argument("--devices", default=1)
@@ -72,6 +75,11 @@ if __name__ == "__main__":
     parser.add_argument('--encoder_type', default='resnet18', type=str)
     parser.add_argument('--strategy', default='auto', type=str)
     parser.add_argument('--num_nodes', default=1, type=int)
+    parser.add_argument('--pretrained', default=False, type=bool)
+
+    # Add argument to load config from a YAML file
+    parser.add_argument('--config', action=ActionConfigFile)
+
     args = parser.parse_args()
 
     main(args)
