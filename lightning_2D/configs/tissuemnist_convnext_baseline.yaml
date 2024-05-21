@@ -1,0 +1,13 @@
+precision: '32'
+run_name: tissuemnist_convnext_max_size
+log_every_n_steps: 10
+accelerator: 'gpu'
+devices: 1
+max_epochs: 20
+batch_size: 32
+data_dir: /scratch/izar/ishii
+tasks:
+  - dermamnist
+iter_mode: max_size
+encoder_type: convnext_tiny
+pretrained: True
