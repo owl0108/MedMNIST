@@ -11,9 +11,9 @@ class Encoder(nn.Module):
                 self.network = resnet18(pretrained) # already global avg pooled
             elif encoder_type == 'convnext_tiny':
                 if pretrained:
-                     self.network = convnext_tiny(pretrained=False, in_22k=True, num_classes=21841)
+                     self.network = convnext_tiny(pretrained=pretrained, in_22k=True, num_classes=21841)
                 else:
-                     self.network = convnext_tiny(pretrained=False, num_classes=512) # alrady global avg pooled
+                     self.network = convnext_tiny(pretrained=pretrained, num_classes=512) # alrady global avg pooled
 
             
         def forward(self, inputs):
