@@ -1,0 +1,21 @@
+precision: '32'
+run_name: max_size_convnexts_with_DSelect_k_LinearHead
+log_every_n_steps: 10
+accelerator: 'gpu'
+devices: 1
+max_epochs: 30
+batch_size: 8
+#batch_size: 10
+#data_dir: /scratch/ishii
+data_dir: /scratch/izar/ishii
+tasks:
+  - pathmnist
+  - dermamnist
+  - breastmnist
+  - tissuemnist
+  - organcmnist
+iter_mode: max_size
+encoder_type: convnext_tiny
+selector: DSelect_k_LinearHead
+num_experts: 20
+pretrained: True
