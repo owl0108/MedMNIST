@@ -6,7 +6,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
-from model import GeneralistModel
+from generalist import GeneralistModel
 from dataset import MedMNISTDataModule
 
 def main(hparams):

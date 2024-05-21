@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from model import Encoder, LinearModelHead
+
 class AbsArchitecture(nn.Module):
     r"""An abstract class for MTL architectures.
 
@@ -46,7 +48,6 @@ class AbsArchitecture(nn.Module):
             dict: A dictionary of name-prediction pairs of type (:class:`str`, :class:`torch.Tensor`).
         """
         out = {}
-        #TODO: bug???
         s_rep = self.encoder(inputs)
         same_rep = True if not isinstance(s_rep, list) and not self.multi_input else False
         for tn, task in enumerate(self.task_name):
@@ -96,9 +97,14 @@ class MMoE(AbsArchitecture):
         self.img_size = self.kwargs['img_size']
         self.input_size = np.array(self.img_size, dtype=int).prod()
         self.num_experts = self.kwargs['num_experts']
-        # NOTE: when encoder is resnet, the following line is not correct
-        # self.experts_shared = nn.ModuleList([encoder_class(self.img_size) for _ in range(self.num_experts)])
-        self.experts_shared = nn.ModuleList([encoder_class(encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
+        # NOTE: differentiate LinearHead and others
+        if encoder_class == Encoder:
+            self.experts_shared = nn.ModuleList([encoder_class(encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
+        elif encoder_class == LinearModelHead:
+            self.experts_shared = nn.ModuleList([encoder_class(self.img_size) for _ in range(self.num_experts)])
+        else:
+            raise ValueError("Encoder class not supported")
+    
         self.gate_specific = nn.ModuleDict({task: nn.Sequential(nn.Linear(self.input_size, self.num_experts),
                                                                 nn.Softmax(dim=-1)) for task in self.task_name})
         
