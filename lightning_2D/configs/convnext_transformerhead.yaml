@@ -1,0 +1,15 @@
+precision: '32'
+run_name: convnext_transformerhead
+log_every_n_steps: 10
+accelerator: 'cpu'
+devices: 1
+max_epochs: 30
+batch_size: 32
+data_dir: /scratch/ishii
+tasks:
+  - dermamnist
+iter_mode: max_size
+encoder_type: convnext_tiny
+head: MultiheadAttention
+pretrained: True
+fast_dev_runs: 5

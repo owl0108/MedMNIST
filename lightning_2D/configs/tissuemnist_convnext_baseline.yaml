@@ -7,7 +7,7 @@ max_epochs: 20
 batch_size: 32
 data_dir: /scratch/izar/ishii
 tasks:
-  - dermamnist
+  - tissuemnist
 iter_mode: max_size
 encoder_type: convnext_tiny
 pretrained: True

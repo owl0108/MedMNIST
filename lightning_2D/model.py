@@ -8,9 +8,12 @@ class Encoder(nn.Module):
             super(Encoder, self).__init__()
             # hidden_dim = 512
             if encoder_type == 'resnet18':
+                if pretrained:
+                     print("Loading pretrained resnet18 weight ...")
                 self.network = resnet18(pretrained) # already global avg pooled
             elif encoder_type == 'convnext_tiny':
                 if pretrained:
+                     print("Loading pretrained convnext_tiny weight ...")
                      self.network = convnext_tiny(pretrained=pretrained, in_22k=True, num_classes=21841)
                 else:
                      self.network = convnext_tiny(pretrained=pretrained, num_classes=512) # alrady global avg pooled

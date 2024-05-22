@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('--limit_val_batches', default=None, type=int)
     parser.add_argument('--limit_test_batches', default=None, type=int)
     parser.add_argument('--precision', default='32', type=str)
-    parser.add_argument('--selector', default=None, type=str)
+    parser.add_argument('--head', default=None, type=str)
     parser.add_argument('--num_experts', default=20, type=int)
     parser.add_argument('--detect_anomaly', default=False, type=bool)
     parser.add_argument('--encoder_type', default='resnet18', type=str)

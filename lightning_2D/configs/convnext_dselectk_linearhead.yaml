@@ -16,6 +16,6 @@ tasks:
   - organcmnist
 iter_mode: max_size
 encoder_type: convnext_tiny
-selector: DSelect_k_LinearHead
+head: DSelect_k_LinearHead
 num_experts: 20
 pretrained: True

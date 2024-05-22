@@ -50,14 +50,16 @@ class GeneralistModel(L.LightningModule):
         # head initialization
         if self.head_type == 'MultiheadAttention':
             print("Head is MultiheadAttention ...")
-            self.head = MultiheadAttention(embed_dim=self.embed_dim, num_heads=4, batch_first=True)
+            self.head = MultiheadAttention(embed_dim=self.embed_dim, num_heads=1, batch_first=True)
             # initialize random tokens
-            task_num = self.num_tasks
+            task_num = len(tasks)
             batch_size = kwargs['batch_size']
             self.rand_tokens = torch.randn(size=[batch_size, task_num, self.embed_dim])
         elif self.head_type is None:
             print("Only task-specific linear layer is used ...")
             self.head = None
+        elif self.head_type not in [None, 'DSelect_k', "DSelect_k_LinearHead"]:
+            raise NotImplementedError(f"Head type {self.head_type} is not implemented")
         
     def configure_model(self):
         # in order to give the correct self.device to DSelect_k
@@ -69,15 +71,13 @@ class GeneralistModel(L.LightningModule):
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=self.embed_dim, num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
-        elif self.head_type == 'DSelect_k':
+        if self.head_type == 'DSelect_k':
             print("Head is DSelect_k (for backbone) ...")
             # resnet or convnext as experts
             self.head = DSelect_k(task_name=self.tasks, encoder_class=type(self.encoder),
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=[3, 224, 224], num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
-        elif self.head_type is not None:
-            raise NotImplementedError(f"Head type {self.head_type} is not implemented")
         
     def forward(self, inputs, task):
         """Forward path
