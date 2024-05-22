@@ -9,7 +9,7 @@ from torch.nn import MultiheadAttention
 from resnet import resnet18
 from convnext_model.convnext import convnext_tiny
 from medmnist.info import INFO
-from medmnist.selector import DSelect_k
+from selector import DSelect_k
 
 from utils import getACC, getAUC
 from model import LinearModelHead, Encoder
@@ -20,6 +20,7 @@ class GeneralistModel(L.LightningModule):
         self.save_hyperparameters()
         self.INFO = INFO
         self.tasks = tasks
+        self.task_id_dict = {task: i for i, task in enumerate(tasks)}
         self.lr = lr
         self.head_type = head
         self.head = None
@@ -31,10 +32,10 @@ class GeneralistModel(L.LightningModule):
         self.encoder = Encoder(pretrained, encoder_type) # encoder_type has to be passed to DSelect_k, so don't explicitly specify in __init__
 
         if pretrained and encoder_type == 'convnext_tiny': # to be compatible with pretrained weight
-            self.decoder_input_size = 21841
+            self.embed_dim = 21841
         else:
-            self.decoder_input_size = 512
-        self.decoder = nn.ModuleDict({task: nn.Linear(self.decoder_input_size, class_num_dict[task]) for task in tasks})
+            self.embed_dim = 512
+        self.decoder = nn.ModuleDict({task: nn.Linear(self.embed_dim, class_num_dict[task]) for task in tasks})
         
         if weighting == 'EW': # equal weighting
             self.weighting = torch.mean
@@ -45,27 +46,37 @@ class GeneralistModel(L.LightningModule):
         self.validation_step_outputs = {task: [] for task in tasks}
         self.test_step_outputs = {task: [] for task in tasks}
         self.kwargs = kwargs
+
+        # head initialization
+        if self.head_type == 'MultiheadAttention':
+            print("Head is MultiheadAttention ...")
+            self.head = MultiheadAttention(embed_dim=self.embed_dim, num_heads=4, batch_first=True)
+            # initialize random tokens
+            task_num = self.num_tasks
+            batch_size = kwargs['batch_size']
+            self.rand_tokens = torch.randn(size=[batch_size, task_num, self.embed_dim])
+        elif self.head_type is None:
+            print("Only task-specific linear layer is used ...")
+            self.head = None
         
     def configure_model(self):
         # in order to give the correct self.device to DSelect_k
         # the model is moved to device after starting training
         if self.head_type == "DSelect_k_LinearHead":
+            print("Head is DSelect_k_LinearHead ...")
             # linear heads as experts
             self.head = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
                                   decoders=self.decoder, device=self.device,
-                                  multi_input=False, rep_grad=False, img_size=self.decoder_input_size, num_nonzeros=2,
+                                  multi_input=False, rep_grad=False, img_size=self.embed_dim, num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
         elif self.head_type == 'DSelect_k':
+            print("Head is DSelect_k (for backbone) ...")
             # resnet or convnext as experts
             self.head = DSelect_k(task_name=self.tasks, encoder_class=type(self.encoder),
                                   decoders=self.decoder, device=self.device,
                                   multi_input=False, rep_grad=False, img_size=[3, 224, 224], num_nonzeros=2,
                                   kgamma=1.0, **self.kwargs)
-        elif self.head_type == 'MultiheadAttention':
-            self.head = MultiheadAttention()
-        elif self.head_type is None:
-            self.head = None
-        else:
+        elif self.head_type is not None:
             raise NotImplementedError(f"Head type {self.head_type} is not implemented")
         
     def forward(self, inputs, task):
@@ -78,15 +89,25 @@ class GeneralistModel(L.LightningModule):
         Returns:
             pred, head_ouptut (Tensor, Optional[Tensor]): prediction and head output (one-hot)
         """
+        head_output = None
         if self.head_type is None:
             out = self.encoder(inputs)
             pred = self.decoder[task](out)
-            head_output = None
         elif self.head_type == 'DSelect_k':
             pred, head_output = self.head(inputs, task)
         elif self.head_type == 'DSelect_k_LinearHead':
             out = self.encoder(inputs)
             pred, head_output = self.head(out, task)
+        elif self.head_type == 'MultiheadAttention':
+            out = self.encoder(inputs) # (batch, embed_dim)
+            # add seq_len dimension
+            out = out.unsqueeze(1) # (batch, seq_len, embed_dim)
+            out = torch.concat([out, self.rand_tokens], dim=1)
+            out= self.head(out, out, out).reshape(-1, self.embed_dim)
+            task_id = self.task_id_dict[task]
+            out = out[:, task_id*self.embed_dim:(task_id+1)*self.embed_dim]
+            # divide separate parts into separate parts of decoder
+            pred = self.decoder[task](out)
         return pred, head_output # optionally return the second var
 
     def _on_shared_step(self, batch, mode):
@@ -100,7 +121,7 @@ class GeneralistModel(L.LightningModule):
                 continue
             else:
                 inputs, target = batch_for_a_single_task
-                output, head_output = self.forward(inputs, task) # head_output is None if head is None
+                output, head_output = self.forward(inputs, task) # head_output is not None when DSelect_k is used
                 if mode == 'train':
                     self.training_step_outputs[task].append((output.detach(), target.detach()))
                 elif mode == 'val':
