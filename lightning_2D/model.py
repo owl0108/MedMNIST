@@ -14,7 +14,10 @@ class Encoder(nn.Module):
             elif encoder_type == 'convnext_tiny':
                 if pretrained:
                      print("Loading pretrained convnext_tiny weight ...")
-                     self.network = convnext_tiny(pretrained=pretrained, in_22k=True, num_classes=21841)
+                     self.network = nn.Sequential(
+                          convnext_tiny(pretrained=pretrained, in_22k=True, num_classes=21841),
+                          nn.Linear(21841, 512)
+                     )
                 else:
                      self.network = convnext_tiny(pretrained=pretrained, num_classes=512) # alrady global avg pooled
 

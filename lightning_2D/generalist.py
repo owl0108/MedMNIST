@@ -31,10 +31,7 @@ class GeneralistModel(L.LightningModule):
         class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
         self.encoder = Encoder(pretrained, encoder_type) # encoder_type has to be passed to DSelect_k, so don't explicitly specify in __init__
 
-        if pretrained and encoder_type == 'convnext_tiny': # to be compatible with pretrained weight
-            self.embed_dim = 21841
-        else:
-            self.embed_dim = 512
+        self.embed_dim = 512 # maybe changed for GPU with more memory
         self.decoder = nn.ModuleDict({task: nn.Linear(self.embed_dim, class_num_dict[task]) for task in tasks})
         
         if weighting == 'EW': # equal weighting
