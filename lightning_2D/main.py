@@ -76,6 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--strategy', default='auto', type=str)
     parser.add_argument('--num_nodes', default=1, type=int)
     parser.add_argument('--pretrained', default=False, type=bool)
+    parser.add_argument('--lr', default=0.001, type=float)
 
     # Add argument to load config from a YAML file
     parser.add_argument('--config', action=ActionConfigFile)

@@ -15,7 +15,7 @@ from utils import getACC, getAUC
 from model import LinearModelHead, Encoder
 
 class GeneralistModel(L.LightningModule):
-    def __init__(self, tasks: List[str], lr=0.001, weighting: str='EW', head=None, **kwargs):
+    def __init__(self, tasks: List[str], lr, weighting: str='EW', head=None, **kwargs):
         super().__init__()
         self.save_hyperparameters()
         self.INFO = INFO
