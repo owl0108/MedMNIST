@@ -26,6 +26,7 @@ class GeneralistModel(L.LightningModule):
         self.head = None
         self.bcewithlogitsloss = nn.BCEWithLogitsLoss()
         self.ce_loss = nn.CrossEntropyLoss()
+        self.batch_size = kwargs['batch_size']
         pretrained = kwargs['pretrained']
         encoder_type = kwargs['encoder_type']
         class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
