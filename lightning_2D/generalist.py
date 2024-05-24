@@ -20,7 +20,7 @@ class GeneralistModel(L.LightningModule):
         self.save_hyperparameters()
         self.INFO = INFO
         self.tasks = tasks
-        self.task_id_dict = {task: i for i, task in enumerate(tasks)}
+        self.task_id_dict = {task: i + 1 for i, task in enumerate(tasks)} # id start from 1
         self.lr = lr
         self.head_type = head
         self.head = None
@@ -51,7 +51,7 @@ class GeneralistModel(L.LightningModule):
             # initialize random tokens
             task_num = len(tasks)
             batch_size = kwargs['batch_size']
-            self.rand_tokens = torch.randn(size=[batch_size, task_num, self.embed_dim])
+            self.register_buffer('rand_tokens', torch.randn(size=[batch_size, task_num, self.embed_dim]))
         elif self.head_type is None:
             print("Only task-specific linear layer is used ...")
             self.head = None
@@ -100,9 +100,9 @@ class GeneralistModel(L.LightningModule):
             # add seq_len dimension
             out = out.unsqueeze(1) # (batch, seq_len, embed_dim)
             out = torch.concat([out, self.rand_tokens], dim=1)
-            out= self.head(out, out, out).reshape(-1, self.embed_dim)
+            out= self.head(out, out, out)[0]
             task_id = self.task_id_dict[task]
-            out = out[:, task_id*self.embed_dim:(task_id+1)*self.embed_dim]
+            out = out[:, task_id, ...] #[batch_size, task_num + 1, embed_dim] only select the task_id-th part
             # divide separate parts into separate parts of decoder
             pred = self.decoder[task](out)
         return pred, head_output # optionally return the second var
