@@ -99,7 +99,10 @@ class GeneralistModel(L.LightningModule):
             out = self.encoder(inputs) # (batch, embed_dim)
             # add seq_len dimension
             out = out.unsqueeze(1) # (batch, seq_len, embed_dim)
-            out = torch.concat([out, self.rand_tokens], dim=1)
+            if out.shape[0] < self.batch_size:
+                out = torch.cat([out, self.rand_tokens[:out.shape[0], ...]], dim=1)
+            else:   
+                out = torch.concat([out, self.rand_tokens], dim=1)
             out= self.head(out, out, out)[0]
             task_id = self.task_id_dict[task]
             out = out[:, task_id, ...] #[batch_size, task_num + 1, embed_dim] only select the task_id-th part
