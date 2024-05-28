@@ -19,3 +19,5 @@ encoder_type: convnext_tiny
 head: DSelect_k_LinearHead
 num_experts: 20
 pretrained: True
+num_head_layers: 1
+lr: 0.0001

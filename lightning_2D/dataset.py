@@ -25,11 +25,11 @@ class MedMNISTDataModule(L.LightningDataModule):
                 data_transform = transforms.Compose(
                     [transforms.Resize((224, 224), interpolation=InterpolationMode.NEAREST), 
                     transforms.ToTensor(),
-                    transforms.Normalize(mean=[.5], std=[.5])])
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
             else:
                 data_transform = transforms.Compose(
                     [transforms.ToTensor(),
-                    transforms.Normalize(mean=[.5], std=[.5])])
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
             return data_transform
         
         self.data_dir = data_dir
