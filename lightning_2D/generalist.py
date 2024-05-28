@@ -48,7 +48,7 @@ class GeneralistModel(L.LightningModule):
         # head initialization
         if self.head_type == 'MultiheadAttention':
             print("Head is MultiheadAttention ...")
-            self.head = MultiheadAttention(embed_dim=self.embed_dim, num_heads=1, batch_first=True)
+            self.head = MultiheadAttention(embed_dim=self.embed_dim, num_heads=4, batch_first=True)
             # initialize random tokens
             task_num = len(tasks)
             batch_size = kwargs['batch_size']
