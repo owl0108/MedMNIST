@@ -4,10 +4,11 @@ log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
 max_epochs: 20
-batch_size: 32
+batch_size: 128
 data_dir: /scratch/izar/ishii
 tasks:
   - pathmnist
 iter_mode: max_size
 encoder_type: convnext_tiny
 pretrained: True
+lr: 0.0001
