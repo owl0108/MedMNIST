@@ -14,6 +14,5 @@ tasks:
   - organcmnist
 iter_mode: max_size
 encoder_type: convnext_tiny
-head: None
 pretrained: True
 lr: 0.001
