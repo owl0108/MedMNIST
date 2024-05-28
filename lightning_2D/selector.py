@@ -101,7 +101,7 @@ class MMoE(AbsArchitecture):
         if encoder_class == Encoder:
             self.experts_shared = nn.ModuleList([Encoder(pretrained=kwargs['pretrained'], encoder_type=kwargs['encoder_type']) for _ in range(self.num_experts)])
         elif encoder_class == LinearModelHead:
-            self.experts_shared = nn.ModuleList([LinearModelHead(input_dim=self.img_size) for _ in range(self.num_experts)])
+            self.experts_shared = nn.ModuleList([LinearModelHead(input_dim=self.img_size, layers=kwargs['num_head_layers']) for _ in range(self.num_experts)])
         else:
             raise ValueError("Encoder class not supported")
     
@@ -221,6 +221,7 @@ class DSelect_k(MMoE):
         """
         experts_shared_rep = torch.stack([e(inputs) for e in self.experts_shared])
 
+        # input_size --> self._num_nonzeros*self._num_binary, task specific
         sample_logits = self._z_logits[task](torch.flatten(inputs, start_dim=1))
         sample_logits = sample_logits.reshape(-1, self._num_nonzeros, 1, self._num_binary)
         smooth_step_activations = self._smooth_step_fun(sample_logits)
@@ -228,6 +229,7 @@ class DSelect_k(MMoE):
         # TODO: fix infinity error here
         selector_output = torch.where(self._binary_codes.unsqueeze(0), smooth_step_activations, 
                                         1 - smooth_step_activations).prod(3)
+        #_w_logits: self.input_size --> self._num_nonzeros
         selector_weights = F.softmax(self._w_logits[task](torch.flatten(inputs, start_dim=1)), dim=1)
         expert_weights = torch.einsum('ij, ij... -> i...', selector_weights, selector_output)
         gate_rep = torch.einsum('ij, ji... -> i...', expert_weights, experts_shared_rep)

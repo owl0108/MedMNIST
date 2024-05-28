@@ -1,3 +1,5 @@
+import itertools
+
 import torch
 import torch.nn as nn
 from resnet import resnet18
@@ -28,9 +30,12 @@ class Encoder(nn.Module):
             return out
 
 class LinearModelHead(nn.Module):
-    def __init__(self, input_dim):
+    def __init__(self, input_dim, layers=1):
         super(LinearModelHead, self).__init__()
-        self.fc = nn.Linear(input_dim, input_dim)
+        linear_layers = [[nn.Linear(input_dim, input_dim),
+                          nn.ReLU()] for i in range(layers)]
+        linear_layers = list(itertools.chain(*linear_layers))
+        self.fc = nn.Sequential(*linear_layers)
     
     def forward(self, x):
         return self.fc(x)
