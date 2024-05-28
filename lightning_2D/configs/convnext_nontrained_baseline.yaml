@@ -1,5 +1,5 @@
 precision: '32'
-run_name: convnext_transformerhead_pre-trained
+run_name: convnext_baseline_non-trained
 log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
@@ -14,6 +14,6 @@ tasks:
   - organcmnist
 iter_mode: max_size
 encoder_type: convnext_tiny
-head: MultiheadAttention
-pretrained: True
+head: None
+pretrained:  False
 lr: 0.001
