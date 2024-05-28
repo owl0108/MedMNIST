@@ -1,5 +1,5 @@
 precision: '32'
-run_name: resnet18_baseline_non-trained
+run_name: resnet18_baseline_non-trained_lr0.0001
 log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
@@ -15,4 +15,4 @@ tasks:
 iter_mode: max_size
 encoder_type: resnet18
 pretrained:  False
-lr: 0.001
+lr: 0.0001

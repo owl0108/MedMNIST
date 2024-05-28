@@ -67,7 +67,7 @@ class GeneralistModel(L.LightningModule):
             # linear heads as experts
             self.head = DSelect_k(task_name=self.tasks, encoder_class=LinearModelHead,
                                   decoders=self.decoder, device=self.device,
-                                  multi_input=False, rep_grad=False, img_size=self.embed_dim, num_nonzeros=2,
+                                  multi_input=False, rep_grad=False, img_size=self.embed_dim, num_nonzeros=len(self.tasks),
                                   kgamma=1.0, **self.kwargs)
         if self.head_type == 'DSelect_k':
             print("Head is DSelect_k (for backbone) ...")

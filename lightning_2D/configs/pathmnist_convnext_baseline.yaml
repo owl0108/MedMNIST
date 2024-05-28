@@ -1,5 +1,5 @@
 precision: '32'
-run_name: pathmnist_convnext_max_size
+run_name: pathmnist_convnext_lr_0.0001
 log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
