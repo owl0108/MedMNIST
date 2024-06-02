@@ -1,0 +1,20 @@
+#!/bin/bash -l
+
+# Run a job on 1 core + 1 GPU
+# login to deneb1 or deneb2 to submit
+
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=gpu
+#SBATCH --qos=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --time=5-00:00:00
+#SBATCH --mem 8G
+#SBATCH --mail-type ALL
+#SBATCH --mail-user takuya.ishii@epfl.ch
+
+# run within LibMTL_2D directory
+conda activate convnext_medmnist
+git checkout resnet-as-experts
+bash script/train_convnext_dselectk.sh

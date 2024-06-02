@@ -52,6 +52,7 @@ class GeneralistModel(L.LightningModule):
             # initialize random tokens
             task_num = len(tasks)
             batch_size = kwargs['batch_size']
+            # self.rand_tokens = nn.Parameter(
             self.register_buffer('rand_tokens', torch.randn(size=[batch_size, task_num, self.embed_dim]))
         elif self.head_type is None:
             print("Only task-specific linear layer is used ...")

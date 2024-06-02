@@ -1,12 +1,10 @@
 precision: '32'
-run_name: max_size_convnexts_with_DSelect_k_LinearHead
+run_name: convnexts_DSelect_k_LinearHead
 log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
 max_epochs: 30
 batch_size: 32
-#batch_size: 10
-#data_dir: /scratch/ishii
 data_dir: /scratch/izar/ishii
 tasks:
   - pathmnist
