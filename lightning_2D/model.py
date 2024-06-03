@@ -3,7 +3,7 @@ import itertools
 import torch
 import torch.nn as nn
 from resnet import resnet18
-from convnext_model.convnext import convnext_tiny
+from convnext_model.convnext import convnext_tiny, convnext_small
 
 class Encoder(nn.Module):
         def __init__(self, pretrained, encoder_type='resnet18'):
@@ -21,7 +21,16 @@ class Encoder(nn.Module):
                           nn.Linear(21841, 512)
                      )
                 else:
-                     self.network = convnext_tiny(pretrained=pretrained, num_classes=512) # alrady global avg pooled
+                     self.network = convnext_tiny(pretrained=pretrained, num_classes=512)
+            elif encoder_type == 'convnext_small':
+                if pretrained:
+                     print("Loading pretrained convnext_tiny weight ...")
+                     self.network = nn.Sequential(
+                          convnext_small(pretrained=pretrained, in_22k=True, num_classes=21841),
+                          nn.Linear(21841, 512)
+                     )
+                else:
+                     self.network = convnext_small(pretrained=pretrained, num_classes=512)
 
             
         def forward(self, inputs):
