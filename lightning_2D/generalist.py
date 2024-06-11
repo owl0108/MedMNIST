@@ -15,7 +15,7 @@ from utils import getACC, getAUC
 from model import LinearModelHead, Encoder
 
 class GeneralistModel(L.LightningModule):
-    def __init__(self, tasks: List[str], lr, weighting: str='EW', head=None, **kwargs):
+    def __init__(self, tasks: List[str], lr, batch_size,weighting: str='EW', head=None, **kwargs):
         super().__init__()
         self.save_hyperparameters()
         self.INFO = INFO
@@ -26,13 +26,15 @@ class GeneralistModel(L.LightningModule):
         self.head = None
         self.bcewithlogitsloss = nn.BCEWithLogitsLoss()
         self.ce_loss = nn.CrossEntropyLoss()
+
+        # these 3 have to come from kwargs because they can be passed down to DSelect_k
         self.batch_size = kwargs['batch_size']
         pretrained = kwargs['pretrained']
         encoder_type = kwargs['encoder_type']
-        class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
-        self.encoder = Encoder(pretrained, encoder_type) # encoder_type has to be passed to DSelect_k, so don't explicitly specify in __init__
 
+        self.encoder = Encoder(pretrained, encoder_type) # encoder_type has to be passed to DSelect_k, so don't explicitly specify in __init__
         self.embed_dim = 512 # maybe changed for GPU with more memory
+        class_num_dict = {task: len(INFO[task]['label'].keys()) for task in tasks}
         self.decoder = nn.ModuleDict({task: nn.Linear(self.embed_dim, class_num_dict[task]) for task in tasks})
         
         if weighting == 'EW': # equal weighting
@@ -52,8 +54,12 @@ class GeneralistModel(L.LightningModule):
             # initialize random tokens
             task_num = len(tasks)
             batch_size = kwargs['batch_size']
+            # if clip_gradient
+            # do something
+
+            # else 
             self.rand_tokens = nn.Parameter(torch.randn(size=[batch_size, task_num, self.embed_dim]))
-            #self.register_buffer('rand_tokens', torch.randn(size=[batch_size, task_num, self.embed_dim]))
+            
         elif self.head_type is None:
             print("Only task-specific linear layer is used ...")
             self.head = None

@@ -1,5 +1,9 @@
 from time import strftime
+import os
 
+
+import torch
+import clip
 import lightning as pl
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -8,15 +12,35 @@ from jsonargparse import ActionConfigFile, ArgumentParser
 
 from generalist import GeneralistModel
 from dataset import MedMNISTDataModule
+from clip_text import MEDMNIST_DESCRIPTION
 
 def main(hparams):
     #pl.seed_everything(1)
     if hparams.tasks == ['all']:
         hparams.tasks = ['pathmnist', 'octmnist', 'pneumoniamnist', 'chestmnist', 'dermamnist', 'retinamnist',
-                      'breastmnist', 'bloodmnist', 'organsmnist', 'tissuemnist', 'organamnist', 'organcmnist', 'organsmnist']
+                      'breastmnist', 'bloodmnist', 'tissuemnist', 'organamnist', 'organcmnist', 'organsmnist']
         
     print(f"Datasets to be used: {hparams.tasks}")
     kwargs = hparams.__dict__
+
+    if kwargs['get_clip_embedding']:
+        if os.path.exists('./clip_encoding/clip_encoding_dict.pth'):
+            clip_encoding = torch.load('./clip_encoding/clip_encoding_dict.pth')
+        else:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            clip_model, preprocess = clip.load("ViT-B/32", device=device)
+            clip_encoding = {}
+            for task in kwargs['tasks']:
+                text = MEDMNIST_DESCRIPTION[task]
+                tokens = clip.tokenize(text).to(device)
+                with torch.no_grad():
+                    text_features = clip_model.encode_text(tokens)
+                    clip_encoding[task] =  text_features
+            # create a new directory if it doensn`t exist
+            os.makedirs('clip_encoding', exist_ok=True)
+            torch.save(clip_encoding, './clip_encoding/clip_encoding_dict.pth')
+        kwargs['clip_encoding'] = clip_encoding
+
     model = GeneralistModel(**kwargs)
     data_module = MedMNISTDataModule(**kwargs)
 
@@ -27,7 +51,7 @@ def main(hparams):
         save_top_k=1,
         mode="max"
     )
-    wandb_logger = WandbLogger(log_model='all', project='MedMNIST_lightning',
+    wandb_logger = WandbLogger(log_model=True, project='MedMNIST_lightning',
                                name=hparams.run_name+'_'+strftime("%m-%d-%Y_%H:%M:%S"),
                                config=hparams.__dict__)
 
@@ -55,7 +79,8 @@ if __name__ == "__main__":
 
     # add arguments
     parser = ArgumentParser()
-    parser.add_argument("--iter_mode", default="max_size")
+    parser.add_argument("--iter_mode", default="max_size",
+                        choices=["min_size", "max_size", "max_size_cycle", "sequential"])
     parser.add_argument("--fast_dev_runs", default=0, type=int)
     parser.add_argument("--tasks", nargs='+', default=["all"])
     parser.add_argument("--accelerator", default="auto")
@@ -78,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained', default=False, type=bool)
     parser.add_argument('--lr', default=0.0001, type=float)
     parser.add_argument('--num_head_layers', default=1, type=int)
+    parser.add_argument('--combine_clip_embedding', default=False, type=bool)
 
     # Add argument to load config from a YAML file
     parser.add_argument('--config', action=ActionConfigFile)
