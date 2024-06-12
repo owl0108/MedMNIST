@@ -1,5 +1,5 @@
 precision: '32'
-run_name: convnext_small_transformerhead_pre-trained
+run_name: convnext_tiny_transformerhead_pre-trained_clip
 log_every_n_steps: 10
 accelerator: 'gpu'
 devices: 1
@@ -13,8 +13,8 @@ tasks:
   - tissuemnist
   - organcmnist
 iter_mode: max_size
-encoder_type: convnext_small
+encoder_type: convnext_tiny
 head: MultiheadAttention
 pretrained: True
 lr: 0.0001
-wandb_checkpoint: takuya5115/MedMNIST_lightning/hoix6ar1:latest
+wandb_checkpoint: takuya5115/MedMNIST_lightning/model-hoix6ar1:latest

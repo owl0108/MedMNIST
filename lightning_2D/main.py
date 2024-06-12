@@ -1,5 +1,7 @@
 from time import strftime
 import os
+import re
+from pathlib import Path
 
 
 import torch
@@ -52,7 +54,7 @@ def main(hparams):
 
     # create clip embedding
     if kwargs["combine_clip_embedding"]:
-        if os.path.exists("./clip_embedding/clip_embedding_dict.pth"):
+        if os.path.exists(Path("./clip_embedding/clip_embedding_dict.pth")):
             clip_embedding = torch.load("./clip_embedding/clip_embedding_dict.pth")
         else:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -66,7 +68,7 @@ def main(hparams):
                     clip_embedding[task] = text_features
             # create a new directory if it doensn`t exist
             os.makedirs("clip_embedding", exist_ok=True)
-            torch.save(clip_embedding, "./clip_embedding/clip_embedding_dict.pth")
+            torch.save(clip_embedding, Path("./clip_embedding/clip_embedding_dict.pth"))
         kwargs["clip_embedding"] = clip_embedding
 
         
@@ -90,7 +92,8 @@ def main(hparams):
      # load checkpoint
     if kwargs["wandb_checkpoint"] is not None:
         checkpoint_reference = kwargs["wandb_checkpoint"]
-        wandb_logger.download_artifact(checkpoint_reference, artifact_type="model")
+        artifact_dir = wandb_logger.download_artifact(checkpoint_reference, artifact_type="model")
+        model.load_state_dict(Path(artifact_dir) / "model.ckpt")
 
     trainer = pl.Trainer(
         logger=wandb_logger,
