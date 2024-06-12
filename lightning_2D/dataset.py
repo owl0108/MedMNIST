@@ -5,7 +5,7 @@ import lightning as L
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from torch.utils.data import random_split, DataLoader, Dataset
 import medmnist.datasets as medclasses # import all the datset classes
-from lightning_2D.medmnist.info import INFO, HOMEPAGE
+from medmnist.info import INFO, HOMEPAGE
 
 # Note - you must have torchvision installed for this example
 from torchvision import transforms

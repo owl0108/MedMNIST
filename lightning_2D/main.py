@@ -37,7 +37,7 @@ def main(hparams):
     print(f"Datasets to be used: {hparams.tasks}")
     kwargs = hparams.__dict__
 
-    if kwargs['get_clip_embedding']:
+    if kwargs['combine_clip_embedding']:
         if os.path.exists('./clip_embedding/clip_embedding_dict.pth'):
             clip_embedding = torch.load('./clip_embedding/clip_embedding_dict.pth')
         else:
