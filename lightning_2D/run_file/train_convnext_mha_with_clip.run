@@ -9,7 +9,7 @@
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --time=20:00:00
+#SBATCH --time=15:00:00
 #SBATCH --mem 8G
 #SBATCH --mail-type ALL
 #SBATCH --mail-user takuya.ishii@epfl.ch
@@ -17,4 +17,4 @@
 # run within LibMTL_2D directory
 conda activate convnext_medmnist
 git checkout main
-python main.py --config configs/convnext_mha_with_clip_embedding_8.yaml
+python main.py --config configs/convnext_mha_with_clip_embedding.yaml

@@ -56,11 +56,10 @@ class GeneralistModel(L.LightningModule):
             batch_size = kwargs['batch_size']
             if clip_embedding is not None:
                 print("Clip tokens are used as extra input to MultiheadAttention Layer ...")
-                assert(type(clip_embedding) == dict, "clip_embedding has to be a dictionary!")
                 rand_tokens = torch.cat([clip_embedding[task] for task in self.tasks], dim=0)
                 # broadcast to batch_size dimension
                 rand_tokens = rand_tokens.unsqueeze(0).repeat(batch_size, 1, 1)
-                self.rand_tokens = nn.Parameter(rand_tokens)
+                self.register_parameter('rand_tokens', nn.Parameter(rand_tokens))
             else:
                 print("Random tokens are used as extra input to MultiheadAttention Layer ...")
                 self.rand_tokens = nn.Parameter(torch.randn(size=[batch_size, task_num, self.embed_dim]))
