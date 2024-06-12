@@ -24,22 +24,22 @@ def main(hparams):
     kwargs = hparams.__dict__
 
     if kwargs['get_clip_embedding']:
-        if os.path.exists('./clip_encoding/clip_encoding_dict.pth'):
-            clip_encoding = torch.load('./clip_encoding/clip_encoding_dict.pth')
+        if os.path.exists('./clip_embedding/clip_embedding_dict.pth'):
+            clip_embedding = torch.load('./clip_embedding/clip_embedding_dict.pth')
         else:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             clip_model, preprocess = clip.load("ViT-B/32", device=device)
-            clip_encoding = {}
+            clip_embedding = {}
             for task in kwargs['tasks']:
                 text = MEDMNIST_DESCRIPTION[task]
                 tokens = clip.tokenize(text).to(device)
                 with torch.no_grad():
                     text_features = clip_model.encode_text(tokens)
-                    clip_encoding[task] =  text_features
+                    clip_embedding[task] =  text_features
             # create a new directory if it doensn`t exist
-            os.makedirs('clip_encoding', exist_ok=True)
-            torch.save(clip_encoding, './clip_encoding/clip_encoding_dict.pth')
-        kwargs['clip_encoding'] = clip_encoding
+            os.makedirs('clip_embedding', exist_ok=True)
+            torch.save(clip_embedding, './clip_embedding/clip_embedding_dict.pth')
+        kwargs['clip_embedding'] = clip_embedding
 
     model = GeneralistModel(**kwargs)
     data_module = MedMNISTDataModule(**kwargs)
