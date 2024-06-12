@@ -65,7 +65,7 @@ def main(hparams):
                 tokens = clip.tokenize(text).to(device)
                 with torch.no_grad():
                     text_features = clip_model.encode_text(tokens)
-                    clip_embedding[task] = text_features
+                    clip_embedding[task] = text_features.to(torch.float32) # can be float16
             # create a new directory if it doensn`t exist
             os.makedirs("clip_embedding", exist_ok=True)
             torch.save(clip_embedding, Path("./clip_embedding/clip_embedding_dict.pth"))
@@ -93,7 +93,8 @@ def main(hparams):
     if kwargs["wandb_checkpoint"] is not None:
         checkpoint_reference = kwargs["wandb_checkpoint"]
         artifact_dir = wandb_logger.download_artifact(checkpoint_reference, artifact_type="model")
-        model.load_state_dict(Path(artifact_dir) / "model.ckpt")
+        state_dict = torch.load(Path(artifact_dir) / "model.ckpt")['state_dict']
+        model.load_state_dict(state_dict, strict=False)
 
     trainer = pl.Trainer(
         logger=wandb_logger,
