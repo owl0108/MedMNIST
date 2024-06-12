@@ -1,6 +1,8 @@
 .DS_Store
 lightning_2D/script
 lightning_2D/slurm_out
+lightning_2D/clip_embedding
+lightning_2D/artifacts
 MedMNIST2D/output/
 LibMTL_2D/log/
 LibMTL_2D/wandb/
@@ -8,6 +10,9 @@ LibMTL_2D/wandb/
 *.out
 checkpoints
 wandb
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
