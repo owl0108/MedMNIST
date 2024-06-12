@@ -111,7 +111,8 @@ if __name__ == "__main__":
     parser.add_argument('--head', default=None, type=str)
     parser.add_argument('--num_experts', default=20, type=int)
     parser.add_argument('--detect_anomaly', default=False, type=bool)
-    parser.add_argument('--encoder_type', default='resnet18', type=str)
+    parser.add_argument('--encoder_type', default='resnet18', type=str,
+                        choices=['resnet18', 'convnext_tiny', 'convnext_small'])
     parser.add_argument('--strategy', default='auto', type=str)
     parser.add_argument('--num_nodes', default=1, type=int)
     parser.add_argument('--pretrained', default=False, type=bool)
