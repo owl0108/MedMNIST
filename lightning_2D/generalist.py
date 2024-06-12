@@ -15,7 +15,7 @@ from utils import getACC, getAUC
 from model import LinearModelHead, Encoder
 
 class GeneralistModel(L.LightningModule):
-    def __init__(self, tasks: List[str], lr, batch_size,weighting: str='EW', head=None, clip_embedding=None, **kwargs):
+    def __init__(self, tasks: List[str], lr, weighting: str='EW', head=None, clip_embedding=None, **kwargs):
         super().__init__()
         self.save_hyperparameters()
         self.INFO = INFO
@@ -59,7 +59,7 @@ class GeneralistModel(L.LightningModule):
                 assert(type(clip_embedding) == dict, "clip_embedding has to be a dictionary!")
                 rand_tokens = torch.cat([clip_embedding[task] for task in self.tasks], dim=0)
                 # broadcast to batch_size dimension
-                rand_tokens = rand_tokens.unsqueeze(0).expand(batch_size, -1, -1)
+                rand_tokens = rand_tokens.unsqueeze(0).repeat(batch_size, 1, 1)
                 self.rand_tokens = nn.Parameter(rand_tokens)
             else:
                 print("Random tokens are used as extra input to MultiheadAttention Layer ...")

@@ -12,7 +12,21 @@ from jsonargparse import ActionConfigFile, ArgumentParser
 
 from generalist import GeneralistModel
 from dataset import MedMNISTDataModule
-from clip_text import MEDMNIST_DESCRIPTION
+
+MEDMNIST_DESCRIPTION = {
+    'pathmnist' : "Hematoxylin & eosin stained histological images: multi-class",
+    'tissuemnist': 'Human kidney cortex cell images: multi-class',
+    'octmnist': "Optical coherence tomography retinal images: multi-class",
+    'pneumoniamnist': "Pediatric chest X-Ray images: binary-class",
+    'chestmnist': "Chest frontal-view X-Ray images: multi-label, binary-class",
+    'dermamnist': "Dermatoscopic images of pigmented skin lesions: multi-class",
+    'retinamnist':"Rretina fundus images: ordinal regression",
+    'breastmnist':"breast ultrasound images: binary-class",
+    'bloodmnist':"Blood cell microscope images: multi-class",
+    'organamnist':"3D abdominal CT images, axial view: multi-class",
+    'organcmnist':"3D abdominal CT images, coronal view: multi-class",
+    'organsmnist':"3D abdominal CT images, saggital view: multi-class"
+}
 
 def main(hparams):
     #pl.seed_everything(1)
